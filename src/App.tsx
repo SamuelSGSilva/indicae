@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Screen, User, ConnectionRequest, Message, ChatThread } from '../types'; // Caminho corrigido
 import { db } from '../db'; // Corrected import path
-import BottomNav from './components/BottomNav';
-import UserProfileScreen from './components/UserProfileScreen';
-import SearchScreen from './components/SearchScreen';
-import ConnectionsScreen from './components/ConnectionsScreen';
-import MessagesScreen from './components/MessagesScreen';
-import ChatScreen from './components/ChatScreen';
-import CreateProfileScreen from './components/CreateProfileScreen';
-import LoginScreen from './components/LoginScreen';
-import RegistrationScreen from './components/RegistrationScreen';
+import BottomNav from '../components/BottomNav';
+import UserProfileScreen from '../components/UserProfileScreen';
+import SearchScreen from '../components/SearchScreen';
+import ConnectionsScreen from '../components/ConnectionsScreen';
+import MessagesScreen from '../components/MessagesScreen';
+import ChatScreen from '../components/ChatScreen';
+import CreateProfileScreen from '../components/CreateProfileScreen';
+import LoginScreen from '../components/LoginScreen';
+import RegistrationScreen from '../components/RegistrationScreen';
 import ToastProvider from './components/ToastProvider'; // Import ToastProvider
 import { supabase } from './integrations/supabase/client'; // Import Supabase client
 import toast from 'react-hot-toast'; // Import toast for notifications
