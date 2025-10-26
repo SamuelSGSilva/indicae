@@ -4,7 +4,7 @@ import { icons } from '../constants';
 
 interface ConnectionsScreenProps {
   connections: ConnectionRequest[];
-  onConnectionAction: (connectionId: number, action: 'accept' | 'reject') => void;
+  onConnectionAction: (connectionId: string, action: 'accept' | 'reject') => void; // Alterado connectionId para string
   onUserClick: (user: User) => void;
   onBack: () => void;
 }

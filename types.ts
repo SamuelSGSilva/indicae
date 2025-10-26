@@ -8,7 +8,7 @@ export enum Screen {
 }
 
 export interface User {
-  id: number;
+  id: string; // Alterado de number para string
   name: string;
   dob: string;
   city: string;
@@ -22,21 +22,21 @@ export interface User {
 }
 
 export interface ConnectionRequest {
-  id: number;
+  id: string; // Alterado de number para string
   user: User;
   interest: string;
 }
 
 export interface Message {
-  id: number;
+  id: string; // Alterado de number para string
   text: string;
   time: string;
-  senderId: number;
+  senderId: string; // Alterado de number para string
   avatar: string;
 }
 
 export interface ChatThread {
-    id: number;
+    id: string; // Alterado de number para string
     contact: User;
     messages: Message[];
 }

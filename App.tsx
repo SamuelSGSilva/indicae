@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Screen, User, ConnectionRequest, Message, ChatThread } from './types';
-import { db } from './db';
-import BottomNav from './components/BottomNav';
-import UserProfileScreen from './components/UserProfileScreen';
-import SearchScreen from './components/SearchScreen';
-import ConnectionsScreen from './components/ConnectionsScreen';
-import MessagesScreen from './components/MessagesScreen';
-import ChatScreen from './components/ChatScreen';
-import CreateProfileScreen from './components/CreateProfileScreen';
-import LoginScreen from './components/LoginScreen';
-import RegistrationScreen from './components/RegistrationScreen';
+import { Screen, User, ConnectionRequest, Message, ChatThread } from '../types'; // Caminho corrigido
+import { db } from '../db'; // Corrected import path
+import BottomNav from '../components/BottomNav';
+import UserProfileScreen from '../components/UserProfileScreen';
+import SearchScreen from '../components/SearchScreen';
+import ConnectionsScreen from '../components/ConnectionsScreen';
+import MessagesScreen from '../components/MessagesScreen';
+import ChatScreen from '../components/ChatScreen';
+import CreateProfileScreen from '../components/CreateProfileScreen';
+import LoginScreen from '../components/LoginScreen';
+import RegistrationScreen from '../components/RegistrationScreen';
+import ToastProvider from './components/ToastProvider'; // Import ToastProvider
+import { supabase } from './integrations/supabase/client'; // Import Supabase client
+import toast from 'react-hot-toast'; // Import toast for notifications
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -18,25 +21,75 @@ const App: React.FC = () => {
   const activeScreen = history[history.length - 1];
   const [chattingWith, setChattingWith] = useState<User | null>(null);
 
-  // App-wide state from our DB
-  const [users, setUsers] = useState<User[]>([]);
+  // App-wide state from our DB (will be partially migrated to Supabase)
+  const [users, setUsers] = useState<User[]>([]); // Still used for mock users/connections
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [connections, setConnections] = useState<ConnectionRequest[]>([]);
   const [chats, setChats] = useState<ChatThread[]>([]);
 
   // Initialize DB and check auth state
   useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session) {
+        // User is authenticated via Supabase
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching profile:', error);
+          toast.error('Erro ao carregar perfil.');
+          setIsAuthenticated(false);
+          setCurrentUser(null);
+          return;
+        }
+
+        if (profile) {
+          // Map Supabase profile to your User type
+          const user: User = {
+            id: profile.id, // Supabase user ID (string)
+            name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
+            dob: profile.dob || '',
+            city: profile.city || '',
+            avatar: profile.avatar_url || `https://picsum.photos/seed/${profile.id}/200/200`,
+            education: profile.education || '',
+            softSkills: profile.soft_skills || [],
+            hardSkills: profile.hard_skills || [],
+            email: session.user.email || '',
+          };
+          setCurrentUser(user);
+          setIsAuthenticated(true);
+          toast.success(`Bem-vindo(a), ${user.name}!`);
+        } else {
+          // Profile not found, but user is authenticated. This might happen if the trigger failed.
+          console.warn('Supabase user authenticated but no profile found.');
+          setIsAuthenticated(true); // Still authenticated, but profile data is missing
+          setCurrentUser({ // Create a basic user object from session
+            id: session.user.id, // ID é string
+            name: session.user.email || 'Usuário',
+            dob: '', city: '', avatar: '', email: session.user.email || ''
+          });
+          toast.warn('Seu perfil está incompleto. Por favor, edite-o.');
+        }
+      } else {
+        // User is not authenticated
+        setIsAuthenticated(false);
+        setCurrentUser(null);
+        toast.dismiss(); // Dismiss any lingering toasts
+      }
+    });
+
+    // Load mock data for connections and chats (these are not yet in Supabase)
     const data = db.initialize();
-    setUsers(data.users);
-    const userFromDb = data.users.find(u => u.id === data.currentUserId) || null;
-    if (userFromDb) {
-      setCurrentUser(userFromDb);
-      setIsAuthenticated(true);
-    } else {
-      setIsAuthenticated(false);
-    }
+    setUsers(data.users); // Keep mock users for search/connections for now
     setConnections(data.connections);
     setChats(data.chats);
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   const handleNavigate = (screen: Screen) => {
@@ -61,34 +114,54 @@ const App: React.FC = () => {
   }
   
   // Data modification handlers
-  const handleSaveProfile = (updatedUser: User) => {
-      db.updateUser(updatedUser);
-      const updatedUsers = users.map(u => u.id === updatedUser.id ? updatedUser : u);
-      setUsers(updatedUsers);
-      setCurrentUser(updatedUser);
-      handleBack();
+  const handleSaveProfile = async (updatedUser: User) => {
+      if (!currentUser) return;
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          first_name: updatedUser.name.split(' ')[0],
+          last_name: updatedUser.name.split(' ').slice(1).join(' '),
+          avatar_url: updatedUser.avatar,
+          education: updatedUser.education,
+          city: updatedUser.city,
+          soft_skills: updatedUser.softSkills,
+          hard_skills: updatedUser.hardSkills,
+          dob: updatedUser.dob,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', currentUser.id); // currentUser.id já é string
+
+      if (error) {
+        console.error('Error updating profile:', error);
+        toast.error('Erro ao salvar perfil.');
+      } else {
+        setCurrentUser(updatedUser); // Update local state
+        toast.success('Perfil salvo com sucesso!');
+        handleBack();
+      }
   };
 
-  const handleConnectionAction = (connectionId: number, action: 'accept' | 'reject') => {
+  const handleConnectionAction = (connectionId: string, action: 'accept' | 'reject') => { // connectionId é string
       db.handleConnection(connectionId, action);
       if (action === 'accept') {
         const conn = connections.find(c => c.id === connectionId);
         if (conn && !chats.some(c => c.contact.id === conn.user.id)) {
-          setChats(prev => [...prev, { id: Date.now(), contact: conn.user, messages: [] }]);
+          setChats(prev => [...prev, { id: Date.now().toString(), contact: conn.user, messages: [] }]); // ID do chat é string
         }
       }
       setConnections(prev => prev.filter(c => c.id !== connectionId));
   };
   
-  const handleSendMessage = (chatPartnerId: number, text: string) => {
+  const handleSendMessage = (chatPartnerId: string, text: string) => { // chatPartnerId é string
       if (!currentUser) return;
 
-      const newId = Date.now();
+      const newId = Date.now().toString(); // ID da mensagem é string
       const newMessage: Message = {
           id: newId,
           text,
           time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-          senderId: currentUser.id,
+          senderId: currentUser.id, // senderId é string
           avatar: currentUser.avatar
       };
       
@@ -110,42 +183,57 @@ const App: React.FC = () => {
   };
 
   // Auth Handlers
-  const handleLogin = (email: string, password?: string) => {
-    const userExists = db.getUserByEmail(email);
+  const handleLogin = async (email: string, password?: string) => {
+    if (!password) {
+      toast.error('Por favor, insira a senha.');
+      return;
+    }
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      toast.error(error.message);
+    } else {
+      // Auth state change listener will handle setting isAuthenticated and currentUser
+      toast.success('Login realizado com sucesso!');
+    }
+  };
 
-    if (!userExists) {
-      alert('Email não encontrado. Por favor, verifique o email ou cadastre-se.');
+  const handleRegister = async (userData: Omit<User, 'id' | 'avatar'> & { avatar?: string }) => {
+    const { name, email, password, dob, city } = userData;
+    if (!password) {
+      toast.error('Por favor, insira a senha.');
       return;
     }
 
-    const loggedInUser = db.login(email, password);
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          first_name: name.split(' ')[0],
+          last_name: name.split(' ').slice(1).join(' '),
+          dob: dob,
+          city: city,
+        },
+      },
+    });
 
-    if (loggedInUser) {
-      setCurrentUser(loggedInUser);
-      setIsAuthenticated(true);
-    } else {
-      alert('Senha incorreta. Por favor, tente novamente.');
-    }
-  };
-
-
-  // FIX: Updated the type of userData to make the 'avatar' property optional, aligning it with the registration logic.
-  const handleRegister = (userData: Omit<User, 'id' | 'avatar'> & { avatar?: string }) => {
-    const newUser = db.register(userData);
-    if (newUser) {
-      setUsers(prev => [...prev, newUser]);
-      alert('Cadastro realizado com sucesso! Faça o login para continuar.');
+    if (error) {
+      toast.error(error.message);
+    } else if (data.user) {
+      toast.success('Cadastro realizado com sucesso! Verifique seu email para confirmar a conta.');
       setAuthScreen('login');
-    } else {
-      alert('Este email já está em uso.');
     }
   };
 
-  const handleLogout = () => {
-    db.setCurrentUserId(null);
-    setIsAuthenticated(false);
-    setCurrentUser(null);
-    setHistory([Screen.Search]); // Reset navigation
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error('Erro ao fazer logout.');
+    } else {
+      toast.success('Logout realizado com sucesso!');
+      // Auth state change listener will handle setting isAuthenticated and currentUser
+      setHistory([Screen.Search]); // Reset navigation
+    }
   };
 
 
@@ -157,12 +245,13 @@ const App: React.FC = () => {
                 messages={chat?.messages || []} 
                 onBack={handleBack} 
                 onSendMessage={(text) => handleSendMessage(chattingWith.id, text)} 
-                currentUserId={currentUser.id}
+                currentUserId={currentUser.id} // currentUser.id é string
              />;
     }
     
     switch (activeScreen) {
       case Screen.Search:
+        // Comparando IDs de string
         return <SearchScreen users={users.filter(u => u.id !== currentUser?.id)} onUserClick={handleStartChat} onBack={handleBack} />;
       case Screen.Connections:
         return <ConnectionsScreen connections={connections} onConnectionAction={handleConnectionAction} onUserClick={handleStartChat} onBack={handleBack} />;
@@ -204,6 +293,7 @@ const App: React.FC = () => {
   return (
     <div className="flex items-center justify-center min-h-screen font-sans bg-gray-900">
       <div className="relative w-full max-w-sm h-[850px] bg-[#0B1526] text-white shadow-2xl rounded-lg overflow-hidden flex flex-col">
+        <ToastProvider /> {/* Add ToastProvider here */}
         {renderContent()}
       </div>
     </div>
