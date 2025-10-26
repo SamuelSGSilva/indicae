@@ -1,7 +1,6 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
+import Index from './pages/Index'; // Importe a página Index
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -11,6 +10,6 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <App />
+    <Index /> {/* Renderize a página Index */}
   </React.StrictMode>
 );

@@ -4,7 +4,6 @@ import CityModal from './CityModal';
 import { ALL_CITIES } from '../constants';
 
 interface RegistrationScreenProps {
-  // FIX: Updated the type of userData to make the 'avatar' property optional, as it is not required during initial registration.
   onRegister: (userData: Omit<User, 'id' | 'avatar'> & { avatar?: string }) => void;
   onNavigateToLogin: () => void;
 }

@@ -7,14 +7,14 @@ interface AppDB {
     users: User[];
     connections: ConnectionRequest[];
     chats: ChatThread[];
-    currentUserId: number | null;
+    currentUserId: number | null; // This will be managed by Supabase Auth now
 }
 
 // In-memory cache to act as a single source of truth after initialization.
 let _cachedDB: AppDB | null = null;
 
 const createInitialDB = (): AppDB => ({
-    users: [...MOCK_USERS],
+    users: [...MOCK_USERS], // Keep mock users for search/connections for now
     connections: [...MOCK_CONNECTIONS],
     chats: [
         {
@@ -23,7 +23,7 @@ const createInitialDB = (): AppDB => ({
             messages: [...MOCK_CHAT_MESSAGES],
         },
     ],
-    currentUserId: null,
+    currentUserId: null, // Supabase will manage this
 });
 
 const writeDB = (db: AppDB) => {
@@ -57,14 +57,8 @@ const readDB = (): AppDB => {
 
         // Minimal validation to ensure the structure is not completely broken
         if (parsed && Array.isArray(parsed.users) && Array.isArray(parsed.connections) && Array.isArray(parsed.chats)) {
-            // Validate currentUserId to prevent broken sessions after code changes
-            if (parsed.currentUserId !== null) {
-                const userExists = parsed.users.some(u => u.id === parsed.currentUserId);
-                if (!userExists) {
-                    console.warn("currentUserId points to a non-existent user. Resetting session.");
-                    parsed.currentUserId = null;
-                }
-            }
+            // currentUserId is now managed by Supabase, so we can ignore it here or reset it
+            parsed.currentUserId = null; 
             _cachedDB = parsed;
             return _cachedDB;
         }
@@ -82,60 +76,19 @@ const readDB = (): AppDB => {
 
 export const db = {
     initialize: (): AppDB => {
-        // This function now just ensures the DB is read from storage and cached.
         return readDB();
     },
 
+    // These methods are no longer used for Supabase Auth
     getUserByEmail: (email: string): User | undefined => {
         const state = readDB();
         return state.users.find(u => u.email.toLowerCase() === email.toLowerCase());
     },
 
-    login: (email: string, password?: string): User | null => {
-        const state = readDB();
-        const user = state.users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
-        if (user) {
-            state.currentUserId = user.id;
-            writeDB(state);
-            return user;
-        }
-        return null;
-    },
-
-    register: (userData: Omit<User, 'id' | 'avatar'> & { avatar?: string }): User | null => {
-        const state = readDB();
-        if (state.users.some(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
-            return null; // Email already exists
-        }
-        const newId = state.users.length > 0 ? Math.max(...state.users.map(u => u.id)) + 1 : 1;
-        const newUser: User = {
-            ...userData,
-            id: newId,
-            avatar: userData.avatar || `https://picsum.photos/seed/${newId}/200/200`,
-            softSkills: [],
-            hardSkills: [],
-        };
-        
-        state.users.push(newUser);
-        writeDB(state);
-        return newUser;
-    },
+    // login and register are now handled by Supabase Auth in App.tsx
+    // updateUser is now handled by Supabase in App.tsx
     
-    setCurrentUserId: (userId: number | null) => {
-        const state = readDB();
-        state.currentUserId = userId;
-        writeDB(state);
-    },
-
-    updateUser: (updatedUser: User) => {
-        const state = readDB();
-        const userIndex = state.users.findIndex(u => u.id === updatedUser.id);
-        if (userIndex !== -1) {
-            state.users[userIndex] = updatedUser;
-            writeDB(state);
-        }
-    },
-
+    // Keep these for now as they interact with local mock data
     handleConnection: (connectionId: number, action: 'accept' | 'reject') => {
         const state = readDB();
         const connection = state.connections.find(c => c.id === connectionId);
