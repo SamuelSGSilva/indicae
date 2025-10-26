@@ -114,82 +114,80 @@ const CreateProfileScreen: React.FC<CreateProfileScreenProps> = ({ user, onBack,
         <div className="w-6 h-6"></div> {/* Placeholder para manter o espaçamento */}
       </header>
 
-      <main className="flex-1 flex flex-col"> {/* Removido -mt-16 */}
-        <div className="relative flex-1"> {/* Removido pt-16 */}
-          {/* White Content Card */}
-          <div className="relative bg-white rounded-t-[2.5rem] pt-16 pb-6 px-6 text-gray-800 h-full"> {/* Ajustado pt-24 para pt-16 */}
-            {/* Avatar Area */}
-            <div onClick={handleAvatarClick} className="absolute cursor-pointer -top-14 left-1/2 -translate-x-1/2 flex flex-col items-center z-20"> {/* Ajustado top */}
-                <div className="relative w-28 h-28 bg-gray-200 rounded-full flex flex-col items-center justify-center overflow-hidden border-2 border-white shadow-lg">
-                    {formData.avatar ? 
-                      <img src={formData.avatar} alt="profile" className="w-full h-full object-cover"/> : 
-                      <div className="text-center">
-                        {icons.camera('w-8 h-8 text-gray-500')}
-                      </div>
-                    }
-                </div>
-                <p className="mt-2 text-xs text-white font-semibold">Adicionar Foto</p>
-                <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    onChange={handleFileChange}
-                    className="hidden" 
-                    accept="image/*"
-                />
+      <main className="flex-1 flex flex-col relative"> {/* Adicionado relative aqui */}
+        {/* Avatar Area - posicionado relativo ao main */}
+        <div onClick={handleAvatarClick} className="absolute cursor-pointer top-16 left-1/2 -translate-x-1/2 flex flex-col items-center z-20"> {/* Ajustado top */}
+            <div className="relative w-28 h-28 bg-gray-200 rounded-full flex flex-col items-center justify-center overflow-hidden border-2 border-white shadow-lg">
+                {formData.avatar ? 
+                  <img src={formData.avatar} alt="profile" className="w-full h-full object-cover"/> : 
+                  <div className="text-center">
+                    {icons.camera('w-8 h-8 text-gray-500')}
+                  </div>
+                }
             </div>
-            
-            <form className="space-y-4 mt-4"> {/* Adicionado mt-4 para empurrar o formulário para baixo do avatar */}
-                <input type="text" placeholder="Nome Completo" name="name" value={formData.name} onChange={handleChange} className="w-full bg-white border border-gray-200 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm"/>
-                <div className="w-full bg-white border border-gray-200 rounded-lg p-3 focus-within:ring-2 focus-within:ring-teal-500 shadow-sm">
-                    <input
-                        type="date"
-                        name="dob"
-                        value={formData.dob}
-                        onChange={handleChange}
-                        className="w-full bg-transparent focus:outline-none text-gray-800"
-                        required
-                    />
-                </div>
-                {/* Botão para abrir o modal de formação */}
-                <button
-                    type="button"
-                    onClick={() => setIsEducationModalOpen(true)}
-                    className="w-full bg-white border border-gray-200 rounded-lg p-3 focus:outline-none text-left shadow-sm focus:ring-2 focus:ring-teal-500"
-                >
-                    {formData.education ? <span className="text-gray-800">{formData.education}</span> : <span className="text-gray-500">Formação</span>}
-                </button>
-                <button
-                    type="button"
-                    onClick={() => setIsCityModalOpen(true)}
-                    className="w-full bg-white border border-gray-200 rounded-lg p-3 focus:outline-none text-left shadow-sm focus:ring-2 focus:ring-teal-500"
-                >
-                    {formData.city ? <span className="text-gray-800">{formData.city}</span> : <span className="text-gray-500">Cidade</span>}
-                </button>
-            </form>
-            <div className="mt-6 space-y-4">
-                <SkillSection 
-                    title="Soft Skills"
-                    subtitle="Ex: Liderança, Comunicação"
-                    icon={icons.softSkills('w-6 h-6 text-white')}
-                    skills={formData.softSkills || []}
-                    onAddSkill={() => openSkillModal('softSkills')}
-                    onRemoveSkill={(skill) => handleRemoveSkill('softSkills', skill)}
-                />
-                <SkillSection 
-                    title="Hard Skills"
-                    subtitle="Ex: DevOps, Big Data"
-                    icon={icons.hardSkills('w-6 h-6 text-white')}
-                    skills={formData.hardSkills || []}
-                    onAddSkill={() => openSkillModal('hardSkills')}
-                    onRemoveSkill={(skill) => handleRemoveSkill('hardSkills', skill)}
-                />
-            </div>
+            <p className="mt-2 text-xs text-white font-semibold">Adicionar Foto</p>
+            <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileChange}
+                className="hidden" 
+                accept="image/*"
+            />
+        </div>
+        
+        {/* White Content Card */}
+        <div className="relative bg-white rounded-t-[2.5rem] mt-24 pb-6 px-6 text-gray-800 h-full"> {/* Ajustado pt-24 para mt-24 */}
+          <form className="space-y-4 pt-16"> {/* Adicionado pt-16 para empurrar o conteúdo para baixo do avatar */}
+              <input type="text" placeholder="Nome Completo" name="name" value={formData.name} onChange={handleChange} className="w-full bg-white border border-gray-200 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm"/>
+              <div className="w-full bg-white border border-gray-200 rounded-lg p-3 focus-within:ring-2 focus-within:ring-teal-500 shadow-sm">
+                  <input
+                      type="date"
+                      name="dob"
+                      value={formData.dob}
+                      onChange={handleChange}
+                      className="w-full bg-transparent focus:outline-none text-gray-800"
+                      required
+                  />
+              </div>
+              {/* Botão para abrir o modal de formação */}
+              <button
+                  type="button"
+                  onClick={() => setIsEducationModalOpen(true)}
+                  className="w-full bg-white border border-gray-200 rounded-lg p-3 focus:outline-none text-left shadow-sm focus:ring-2 focus:ring-teal-500"
+              >
+                  {formData.education ? <span className="text-gray-800">{formData.education}</span> : <span className="text-gray-500">Formação</span>}
+              </button>
+              <button
+                  type="button"
+                  onClick={() => setIsCityModalOpen(true)}
+                  className="w-full bg-white border border-gray-200 rounded-lg p-3 focus:outline-none text-left shadow-sm focus:ring-2 focus:ring-teal-500"
+              >
+                  {formData.city ? <span className="text-gray-800">{formData.city}</span> : <span className="text-gray-500">Cidade</span>}
+              </button>
+          </form>
+          <div className="mt-6 space-y-4">
+              <SkillSection 
+                  title="Soft Skills"
+                  subtitle="Ex: Liderança, Comunicação"
+                  icon={icons.softSkills('w-6 h-6 text-white')}
+                  skills={formData.softSkills || []}
+                  onAddSkill={() => openSkillModal('softSkills')}
+                  onRemoveSkill={(skill) => handleRemoveSkill('softSkills', skill)}
+              />
+              <SkillSection 
+                  title="Hard Skills"
+                  subtitle="Ex: DevOps, Big Data"
+                  icon={icons.hardSkills('w-6 h-6 text-white')}
+                  skills={formData.hardSkills || []}
+                  onAddSkill={() => openSkillModal('hardSkills')}
+                  onRemoveSkill={(skill) => handleRemoveSkill('hardSkills', skill)}
+              />
+          </div>
 
-            <div className="mt-8 text-center">
-                <button onClick={() => onSave(formData)} className="bg-[#0d1b2a] text-white font-bold py-3 px-12 rounded-full w-full max-w-xs mx-auto hover:bg-[#1a2c41] transition-colors shadow-lg">
-                    Salvar Perfil
-                </button>
-            </div>
+          <div className="mt-8 text-center">
+              <button onClick={() => onSave(formData)} className="bg-[#0d1b2a] text-white font-bold py-3 px-12 rounded-full w-full max-w-xs mx-auto hover:bg-[#1a2c41] transition-colors shadow-lg">
+                  Salvar Perfil
+              </button>
           </div>
         </div>
       </main>
@@ -228,5 +226,4 @@ const CreateProfileScreen: React.FC<CreateProfileScreenProps> = ({ user, onBack,
     </>
   );
 };
-
 export default CreateProfileScreen;

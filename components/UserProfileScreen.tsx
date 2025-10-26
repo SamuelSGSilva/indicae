@@ -38,65 +38,64 @@ const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ user, onEdit, onL
         </button>
       </header>
       
-      <main className="flex-1 flex flex-col overflow-y-auto"> {/* Removido -mt-16 */}
-        <div className="relative flex-1"> {/* Removido pt-16 */}
-          {/* White Content Card */}
-          <div className="relative bg-white rounded-t-[2.5rem] pt-16 pb-6 px-6 text-gray-800 h-full"> {/* Ajustado pt-20 para pt-16 */}
-            {/* Avatar Area */}
-            <div className="absolute -top-14 left-1/2 -translate-x-1/2 flex flex-col items-center z-20"> {/* Ajustado top */}
-                <div className="relative w-28 h-28 bg-gray-200 rounded-full flex flex-col items-center justify-center overflow-hidden border-4 border-[#0B1526] shadow-lg">
-                    {user.avatar ? 
-                      <img src={user.avatar} alt="profile" className="w-full h-full object-cover"/> : 
-                      <span className="text-5xl font-bold text-gray-400">{user.name.charAt(0)}</span>
-                    }
-                </div>
+      <main className="flex-1 flex flex-col overflow-y-auto relative"> {/* Adicionado relative aqui */}
+        {/* Avatar Area - posicionado relativo ao main */}
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 flex flex-col items-center z-20"> {/* Ajustado top */}
+            <div className="relative w-28 h-28 bg-gray-200 rounded-full flex flex-col items-center justify-center overflow-hidden border-4 border-[#0B1526] shadow-lg">
+                {user.avatar ? 
+                  <img src={user.avatar} alt="profile" className="w-full h-full object-cover"/> : 
+                  <span className="text-5xl font-bold text-gray-400">{user.name.charAt(0)}</span>
+                }
             </div>
-            <button onClick={onEdit} className="absolute top-6 right-6 text-gray-500 hover:text-gray-800 transition-colors p-2 rounded-full hover:bg-gray-100" aria-label="Editar Perfil">
-              {icons.edit('w-6 h-6')}
-            </button>
-            <div className="text-center mt-4"> {/* Adicionado mt-4 para empurrar o texto para baixo do avatar */}
-                <h2 className="text-3xl font-bold">{user.name}</h2>
-                <p className="text-gray-500 mt-1">{calculateAge(user.dob)} Anos</p>
-            </div>
-            
-            <div className="space-y-5 my-8 border-t border-b border-gray-200 py-6">
-                 <InfoItem 
-                    icon={icons.education('w-6 h-6')}
-                    label="Formação"
-                    value={user.education}
-                />
-                <InfoItem 
-                    icon={icons.location('w-6 h-6')}
-                    label="Localização"
-                    value={user.city}
-                />
-            </div>
+        </div>
+        
+        {/* White Content Card */}
+        <div className="relative bg-white rounded-t-[2.5rem] mt-24 pb-6 px-6 text-gray-800 h-full"> {/* Ajustado pt-16 para mt-24 */}
+          <button onClick={onEdit} className="absolute top-6 right-6 text-gray-500 hover:text-gray-800 transition-colors p-2 rounded-full hover:bg-gray-100" aria-label="Editar Perfil">
+            {icons.edit('w-6 h-6')}
+          </button>
+          <div className="text-center pt-16"> {/* Adicionado pt-16 para empurrar o conteúdo para baixo do avatar */}
+              <h2 className="text-3xl font-bold">{user.name}</h2>
+              <p className="text-gray-500 mt-1">{calculateAge(user.dob)} Anos</p>
+          </div>
+          
+          <div className="space-y-5 my-8 border-t border-b border-gray-200 py-6">
+               <InfoItem 
+                  icon={icons.education('w-6 h-6')}
+                  label="Formação"
+                  value={user.education}
+              />
+              <InfoItem 
+                  icon={icons.location('w-6 h-6')}
+                  label="Localização"
+                  value={user.city}
+              />
+          </div>
 
-            <div className="space-y-4 pb-6">
-                <div className="bg-[#0d1b2a] rounded-xl p-4 text-gray-300">
-                    <div className="flex items-center mb-3">
-                        {icons.softSkills('w-6 h-6 text-white')}
-                        <h3 className="text-lg font-bold ml-2 text-white">Soft Skills</h3>
-                    </div>
-                    {hasSoftSkills ? (
-                        <div className="flex flex-wrap gap-2">
-                            {user.softSkills?.map((skill, index) => <SkillTag key={index} skill={skill} color={getColorForSkill(skill)}/>)}
-                        </div>
-                    ) : <p className="text-gray-400 text-sm">Nenhuma skill adicionada.</p>}
-                </div>
+          <div className="space-y-4 pb-6">
+              <div className="bg-[#0d1b2a] rounded-xl p-4 text-gray-300">
+                  <div className="flex items-center mb-3">
+                      {icons.softSkills('w-6 h-6 text-white')}
+                      <h3 className="text-lg font-bold ml-2 text-white">Soft Skills</h3>
+                  </div>
+                  {hasSoftSkills ? (
+                      <div className="flex flex-wrap gap-2">
+                          {user.softSkills?.map((skill, index) => <SkillTag key={index} skill={skill} color={getColorForSkill(skill)}/>)}
+                      </div>
+                  ) : <p className="text-gray-400 text-sm">Nenhuma skill adicionada.</p>}
+              </div>
 
-                <div className="bg-[#0d1b2a] rounded-xl p-4 text-gray-300">
-                    <div className="flex items-center mb-3">
-                        {icons.hardSkills('w-6 h-6 text-white')}
-                        <h3 className="text-lg font-bold ml-2 text-white">Hard Skills</h3>
-                    </div>
-                    {hasHardSkills ? (
-                        <div className="flex flex-wrap gap-2">
-                            {user.hardSkills?.map((skill, index) => <SkillTag key={index} skill={skill} color={getColorForSkill(skill)}/>)}
-                        </div>
-                    ) : <p className="text-gray-400 text-sm">Nenhuma skill adicionada.</p>}
-                </div>
-            </div>
+              <div className="bg-[#0d1b2a] rounded-xl p-4 text-gray-300">
+                  <div className="flex items-center mb-3">
+                      {icons.hardSkills('w-6 h-6 text-white')}
+                      <h3 className="text-lg font-bold ml-2 text-white">Hard Skills</h3>
+                  </div>
+                  {hasHardSkills ? (
+                      <div className="flex flex-wrap gap-2">
+                          {user.hardSkills?.map((skill, index) => <SkillTag key={index} skill={skill} color={getColorForSkill(skill)}/>)}
+                      </div>
+                  ) : <p className="text-gray-400 text-sm">Nenhuma skill adicionada.</p>}
+              </div>
           </div>
         </div>
       </main>
