@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Screen, User, ConnectionRequest, Message, ChatThread } from './types';
+import { Screen, User, ConnectionRequest, Message, ChatThread } from '../types'; // Caminho corrigido
 import { db } from './db';
 import BottomNav from './components/BottomNav';
 import UserProfileScreen from './components/UserProfileScreen';
