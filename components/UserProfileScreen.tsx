@@ -40,7 +40,7 @@ const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ user, onEdit, onL
       
       <main className="flex-1 flex flex-col overflow-y-auto relative"> {/* Adicionado relative aqui */}
         {/* Avatar Area - posicionado relativo ao main */}
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 flex flex-col items-center z-20"> {/* Ajustado top */}
+        <div className="absolute top-12 left-1/2 -translate-x-1/2 flex flex-col items-center z-20"> {/* Ajustado top-16 para top-12 */}
             <div className="relative w-28 h-28 bg-gray-200 rounded-full flex flex-col items-center justify-center overflow-hidden border-4 border-[#0B1526] shadow-lg">
                 {user.avatar ? 
                   <img src={user.avatar} alt="profile" className="w-full h-full object-cover"/> : 

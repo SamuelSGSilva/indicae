@@ -116,7 +116,7 @@ const CreateProfileScreen: React.FC<CreateProfileScreenProps> = ({ user, onBack,
 
       <main className="flex-1 flex flex-col relative"> {/* Adicionado relative aqui */}
         {/* Avatar Area - posicionado relativo ao main */}
-        <div onClick={handleAvatarClick} className="absolute cursor-pointer top-16 left-1/2 -translate-x-1/2 flex flex-col items-center z-20"> {/* Ajustado top */}
+        <div onClick={handleAvatarClick} className="absolute cursor-pointer top-12 left-1/2 -translate-x-1/2 flex flex-col items-center z-20"> {/* Ajustado top-16 para top-12 */}
             <div className="relative w-28 h-28 bg-gray-200 rounded-full flex flex-col items-center justify-center overflow-hidden border-2 border-white shadow-lg">
                 {formData.avatar ? 
                   <img src={formData.avatar} alt="profile" className="w-full h-full object-cover"/> : 
