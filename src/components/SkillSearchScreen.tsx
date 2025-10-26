@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { User, Screen } from '../types';
-import { icons, ALL_HARD_SKILLS, ALL_SOFT_SKILLS, calculateAge } from '../constants';
+import { icons, ALL_HARD_SKILLS, ALL_SOFT_SKILLS, calculateAge } from '../../constants'; // Caminho corrigido
 
 interface SkillSearchScreenProps {
   allUsers: User[]; // Todos os usuários para pesquisar
