@@ -38,24 +38,23 @@ const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ user, onEdit, onL
         </button>
       </header>
       
-      <main className="flex-1 flex flex-col -mt-16 overflow-y-auto">
-        <div className="relative pt-16 flex-1">
-          {/* Avatar Area */}
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center z-20">
-              <div className="relative w-28 h-28 bg-gray-200 rounded-full flex flex-col items-center justify-center overflow-hidden border-4 border-[#0B1526] shadow-lg">
-                  {user.avatar ? 
-                    <img src={user.avatar} alt="profile" className="w-full h-full object-cover"/> : 
-                    <span className="text-5xl font-bold text-gray-400">{user.name.charAt(0)}</span>
-                  }
-              </div>
-          </div>
-          
+      <main className="flex-1 flex flex-col overflow-y-auto"> {/* Removido -mt-16 */}
+        <div className="relative flex-1"> {/* Removido pt-16 */}
           {/* White Content Card */}
-          <div className="relative bg-white rounded-t-[2.5rem] pt-20 pb-6 px-6 text-gray-800 h-full">
+          <div className="relative bg-white rounded-t-[2.5rem] pt-16 pb-6 px-6 text-gray-800 h-full"> {/* Ajustado pt-20 para pt-16 */}
+            {/* Avatar Area */}
+            <div className="absolute -top-14 left-1/2 -translate-x-1/2 flex flex-col items-center z-20"> {/* Ajustado top */}
+                <div className="relative w-28 h-28 bg-gray-200 rounded-full flex flex-col items-center justify-center overflow-hidden border-4 border-[#0B1526] shadow-lg">
+                    {user.avatar ? 
+                      <img src={user.avatar} alt="profile" className="w-full h-full object-cover"/> : 
+                      <span className="text-5xl font-bold text-gray-400">{user.name.charAt(0)}</span>
+                    }
+                </div>
+            </div>
             <button onClick={onEdit} className="absolute top-6 right-6 text-gray-500 hover:text-gray-800 transition-colors p-2 rounded-full hover:bg-gray-100" aria-label="Editar Perfil">
               {icons.edit('w-6 h-6')}
             </button>
-            <div className="text-center">
+            <div className="text-center mt-4"> {/* Adicionado mt-4 para empurrar o texto para baixo do avatar */}
                 <h2 className="text-3xl font-bold">{user.name}</h2>
                 <p className="text-gray-500 mt-1">{calculateAge(user.dob)} Anos</p>
             </div>

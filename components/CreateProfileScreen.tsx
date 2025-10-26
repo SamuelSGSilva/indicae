@@ -114,31 +114,31 @@ const CreateProfileScreen: React.FC<CreateProfileScreenProps> = ({ user, onBack,
         <div className="w-6 h-6"></div> {/* Placeholder para manter o espaçamento */}
       </header>
 
-      <main className="flex-1 flex flex-col">
-        <div className="relative pt-16 flex-1">
-          {/* Avatar Area */}
-          <div onClick={handleAvatarClick} className="absolute cursor-pointer -top-2 left-1/2 -translate-x-1/2 flex flex-col items-center z-20">
-              <div className="relative w-28 h-28 bg-gray-200 rounded-full flex flex-col items-center justify-center overflow-hidden border-2 border-white shadow-lg">
-                  {formData.avatar ? 
-                    <img src={formData.avatar} alt="profile" className="w-full h-full object-cover"/> : 
-                    <div className="text-center">
-                      {icons.camera('w-8 h-8 text-gray-500')}
-                    </div>
-                  }
-              </div>
-              <p className="mt-2 text-xs text-white font-semibold">Adicionar Foto</p>
-              <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleFileChange}
-                  className="hidden" 
-                  accept="image/*"
-              />
-          </div>
-          
+      <main className="flex-1 flex flex-col"> {/* Removido -mt-16 */}
+        <div className="relative flex-1"> {/* Removido pt-16 */}
           {/* White Content Card */}
-          <div className="relative bg-white rounded-t-[2.5rem] pt-24 pb-6 px-6 text-gray-800 h-full">
-            <form className="space-y-4">
+          <div className="relative bg-white rounded-t-[2.5rem] pt-16 pb-6 px-6 text-gray-800 h-full"> {/* Ajustado pt-24 para pt-16 */}
+            {/* Avatar Area */}
+            <div onClick={handleAvatarClick} className="absolute cursor-pointer -top-14 left-1/2 -translate-x-1/2 flex flex-col items-center z-20"> {/* Ajustado top */}
+                <div className="relative w-28 h-28 bg-gray-200 rounded-full flex flex-col items-center justify-center overflow-hidden border-2 border-white shadow-lg">
+                    {formData.avatar ? 
+                      <img src={formData.avatar} alt="profile" className="w-full h-full object-cover"/> : 
+                      <div className="text-center">
+                        {icons.camera('w-8 h-8 text-gray-500')}
+                      </div>
+                    }
+                </div>
+                <p className="mt-2 text-xs text-white font-semibold">Adicionar Foto</p>
+                <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    onChange={handleFileChange}
+                    className="hidden" 
+                    accept="image/*"
+                />
+            </div>
+            
+            <form className="space-y-4 mt-4"> {/* Adicionado mt-4 para empurrar o formulário para baixo do avatar */}
                 <input type="text" placeholder="Nome Completo" name="name" value={formData.name} onChange={handleChange} className="w-full bg-white border border-gray-200 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm"/>
                 <div className="w-full bg-white border border-gray-200 rounded-lg p-3 focus-within:ring-2 focus-within:ring-teal-500 shadow-sm">
                     <input
