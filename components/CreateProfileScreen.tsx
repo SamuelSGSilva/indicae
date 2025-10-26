@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { icons, ALL_HARD_SKILLS, ALL_SOFT_SKILLS, ALL_CITIES, getColorForSkill } from '../constants';
+import { icons, ALL_HARD_SKILLS, ALL_SOFT_SKILLS, ALL_CITIES, ALL_EDUCATION_COURSES, getColorForSkill } from '../constants';
 import { User } from '../types';
 import SkillModal from './SkillModal';
 import CityModal from './CityModal';
+import EducationModal from './EducationModal'; // Importar o novo modal
 
 interface CreateProfileScreenProps {
   user: User;
@@ -54,6 +55,7 @@ const CreateProfileScreen: React.FC<CreateProfileScreenProps> = ({ user, onBack,
     const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
     const [skillTypeToEdit, setSkillTypeToEdit] = useState<'softSkills' | 'hardSkills' | null>(null);
     const [isCityModalOpen, setIsCityModalOpen] = useState(false);
+    const [isEducationModalOpen, setIsEducationModalOpen] = useState(false); // Novo estado para o modal de formação
 
     const openSkillModal = (type: 'softSkills' | 'hardSkills') => {
         setSkillTypeToEdit(type);
@@ -80,6 +82,11 @@ const CreateProfileScreen: React.FC<CreateProfileScreenProps> = ({ user, onBack,
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSelectEducation = (education: string) => {
+        setFormData(prev => ({ ...prev, education }));
+        setIsEducationModalOpen(false);
     };
 
     const handleAvatarClick = () => {
@@ -143,7 +150,14 @@ const CreateProfileScreen: React.FC<CreateProfileScreenProps> = ({ user, onBack,
                         required
                     />
                 </div>
-                <input type="text" placeholder="Formação" name="education" value={formData.education || ''} onChange={handleChange} className="w-full bg-white border border-gray-200 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm"/>
+                {/* Botão para abrir o modal de formação */}
+                <button
+                    type="button"
+                    onClick={() => setIsEducationModalOpen(true)}
+                    className="w-full bg-white border border-gray-200 rounded-lg p-3 focus:outline-none text-left shadow-sm focus:ring-2 focus:ring-teal-500"
+                >
+                    {formData.education ? <span className="text-gray-800">{formData.education}</span> : <span className="text-gray-500">Formação</span>}
+                </button>
                 <button
                     type="button"
                     onClick={() => setIsCityModalOpen(true)}
@@ -200,6 +214,15 @@ const CreateProfileScreen: React.FC<CreateProfileScreenProps> = ({ user, onBack,
             }}
             availableCities={ALL_CITIES}
             title="Selecione sua Cidade"
+        />
+    )}
+    {isEducationModalOpen && ( // Renderizar o EducationModal
+        <EducationModal
+            isOpen={isEducationModalOpen}
+            onClose={() => setIsEducationModalOpen(false)}
+            onSelectEducation={handleSelectEducation}
+            availableEducations={ALL_EDUCATION_COURSES}
+            title="Selecione sua Formação"
         />
     )}
     </>

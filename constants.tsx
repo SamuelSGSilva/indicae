@@ -78,6 +78,30 @@ export const ALL_CITIES = [
   'Paranavaí', 'Apucarana', 'Colombo', 'São José dos Pinhais', 'Pinhais', 'Araucária',
 ].sort();
 
+export const ALL_EDUCATION_COURSES = [
+  'Administração',
+  'ADS/Engenharia de Software',
+  'Arquitetura e Urbanismo',
+  'Agronomia',
+  'Biomedicina',
+  'Ciências Biológicas',
+  'Ciência Contábeis',
+  'Design Gráfico Digital',
+  'Direito',
+  'Educação Física',
+  'Enfermagem',
+  'Engenharia Civil',
+  'Engenharia Elétrica',
+  'Engenharia Mecânica',
+  'Farmácia',
+  'Fisioterapia',
+  'Medicina Veterinária',
+  'Nutrição',
+  'Pedagogia',
+  'Psicologia',
+  'Publicidade e Propaganda',
+].sort();
+
 
 export const MOCK_USERS: User[] = [
   { id: 1, name: 'Jefferson Henrique', dob: '2002-04-15', city: 'Foz do Iguaçu', avatar: 'https://picsum.photos/id/1005/200/200', education: 'Engenharia de Software - Uniamérica Descomplica', softSkills: ['Liderança', 'Comunicação', 'Proatividade', 'Trabalho em Equipe'], hardSkills: ['DevOps', 'Big Data', 'Inteligência Artificial', 'React Native'], email: 'jefferson@indicai.com', password: '123' },
@@ -128,7 +152,7 @@ export const icons = {
   ellipsis: (className: string) => <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 20 20" fill="currentColor"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" /></svg>,
   star: (className: string) => <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>,
   remove: (className: string) => <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>,
-  logout: (className: string) => <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>,
+  logout: (className: string) => <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 0 01-3 3H6a3 0 01-3-3V7a3 0 013-3h4a3 0 013 3v1" /></svg>,
   share: (className: string) => <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>,
   code: (className: string) => <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>,
 };
