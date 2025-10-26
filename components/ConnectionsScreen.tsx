@@ -36,7 +36,7 @@ const ConnectionsScreen: React.FC<ConnectionsScreenProps> = ({ connections, onCo
     <div className="w-full bg-[#0B1526]">
       <header className="p-4 flex justify-between items-center">
         <div className="w-6 h-6" />
-        <h1 className="text-xl font-bold text-white">Conexões</h1>
+        <h1 className="text-xl font-bold text-white">Indicai</h1>
         <button className="flex flex-col items-center text-white">
           {icons.search('w-6 h-6')}
           <span className="text-xs">Indicai</span>
