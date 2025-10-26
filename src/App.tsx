@@ -10,7 +10,7 @@ import ChatScreen from '../components/ChatScreen';
 import CreateProfileScreen from '../components/CreateProfileScreen';
 import LoginScreen from '../components/LoginScreen';
 import RegistrationScreen from '../components/RegistrationScreen';
-import SkillSearchScreen from '../components/SkillSearchScreen'; // Import new screen
+import SkillSearchScreen from './components/SkillSearchScreen'; // Import new screen - Caminho corrigido
 import ToastProvider from './components/ToastProvider'; // Import ToastProvider
 import { supabase } from './integrations/supabase/client'; // Import Supabase client
 import toast from 'react-hot-toast'; // Import toast for notifications
