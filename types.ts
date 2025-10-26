@@ -5,6 +5,7 @@ export enum Screen {
   Profile = 'Perfil',
   Chat = 'Chat',
   CreateProfile = 'CreateProfile',
+  SkillSearch = 'SkillSearch',
 }
 
 export interface User {

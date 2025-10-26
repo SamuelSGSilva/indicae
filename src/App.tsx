@@ -10,6 +10,7 @@ import ChatScreen from '../components/ChatScreen';
 import CreateProfileScreen from '../components/CreateProfileScreen';
 import LoginScreen from '../components/LoginScreen';
 import RegistrationScreen from '../components/RegistrationScreen';
+import SkillSearchScreen from '../components/SkillSearchScreen'; // Import new screen
 import ToastProvider from './components/ToastProvider'; // Import ToastProvider
 import { supabase } from './integrations/supabase/client'; // Import Supabase client
 import toast from 'react-hot-toast'; // Import toast for notifications
@@ -49,7 +50,7 @@ const App: React.FC = () => {
         if (profile) {
           // Map Supabase profile to your User type
           const user: User = {
-            id: profile.id, // Supabase user ID
+            id: profile.id, // Supabase user ID (string)
             name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
             dob: profile.dob || '',
             city: profile.city || '',
@@ -67,7 +68,7 @@ const App: React.FC = () => {
           console.warn('Supabase user authenticated but no profile found.');
           setIsAuthenticated(true); // Still authenticated, but profile data is missing
           setCurrentUser({ // Create a basic user object from session
-            id: session.user.id,
+            id: session.user.id, // ID é string
             name: session.user.email || 'Usuário',
             dob: '', city: '', avatar: '', email: session.user.email || ''
           });
@@ -130,7 +131,7 @@ const App: React.FC = () => {
           dob: updatedUser.dob,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', currentUser.id);
+        .eq('id', currentUser.id); // currentUser.id já é string
 
       if (error) {
         console.error('Error updating profile:', error);
@@ -142,26 +143,26 @@ const App: React.FC = () => {
       }
   };
 
-  const handleConnectionAction = (connectionId: number, action: 'accept' | 'reject') => {
+  const handleConnectionAction = (connectionId: string, action: 'accept' | 'reject') => { // connectionId é string
       db.handleConnection(connectionId, action);
       if (action === 'accept') {
         const conn = connections.find(c => c.id === connectionId);
         if (conn && !chats.some(c => c.contact.id === conn.user.id)) {
-          setChats(prev => [...prev, { id: Date.now(), contact: conn.user, messages: [] }]);
+          setChats(prev => [...prev, { id: Date.now().toString(), contact: conn.user, messages: [] }]); // ID do chat é string
         }
       }
       setConnections(prev => prev.filter(c => c.id !== connectionId));
   };
   
-  const handleSendMessage = (chatPartnerId: number, text: string) => {
+  const handleSendMessage = (chatPartnerId: string, text: string) => { // chatPartnerId é string
       if (!currentUser) return;
 
-      const newId = Date.now();
+      const newId = Date.now().toString(); // ID da mensagem é string
       const newMessage: Message = {
           id: newId,
           text,
           time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-          senderId: currentUser.id,
+          senderId: currentUser.id, // senderId é string
           avatar: currentUser.avatar
       };
       
@@ -245,13 +246,14 @@ const App: React.FC = () => {
                 messages={chat?.messages || []} 
                 onBack={handleBack} 
                 onSendMessage={(text) => handleSendMessage(chattingWith.id, text)} 
-                currentUserId={currentUser.id}
+                currentUserId={currentUser.id} // currentUser.id é string
              />;
     }
     
     switch (activeScreen) {
       case Screen.Search:
-        return <SearchScreen users={users.filter(u => u.id !== currentUser?.id)} onUserClick={handleStartChat} onBack={handleBack} />;
+        // Comparando IDs de string
+        return <SearchScreen users={users.filter(u => u.id !== currentUser?.id)} onUserClick={handleStartChat} onBack={handleBack} onNavigate={handleNavigate} />;
       case Screen.Connections:
         return <ConnectionsScreen connections={connections} onConnectionAction={handleConnectionAction} onUserClick={handleStartChat} onBack={handleBack} />;
       case Screen.Messages:
@@ -260,8 +262,10 @@ const App: React.FC = () => {
         return currentUser ? <UserProfileScreen user={currentUser} onEdit={handleCreateProfile} onLogout={handleLogout} /> : <div className="p-4 text-center">Carregando perfil...</div>;
       case Screen.CreateProfile:
         return currentUser ? <CreateProfileScreen user={currentUser} onBack={handleBack} onSave={handleSaveProfile}/> : <div className="p-4 text-center">Carregando...</div>;
+      case Screen.SkillSearch: // Novo caso para SkillSearchScreen
+        return <SkillSearchScreen allUsers={users.filter(u => u.id !== currentUser?.id)} onUserClick={handleStartChat} onBack={handleBack} />;
       default:
-        return <SearchScreen users={users.filter(u => u.id !== currentUser?.id)} onUserClick={handleStartChat} onBack={handleBack} />;
+        return <SearchScreen users={users.filter(u => u.id !== currentUser?.id)} onUserClick={handleStartChat} onBack={handleBack} onNavigate={handleNavigate} />;
     }
   };
   
@@ -277,7 +281,7 @@ const App: React.FC = () => {
           return <RegistrationScreen onRegister={handleRegister} onNavigateToLogin={() => setAuthScreen('login')} />;
       }
 
-      const isNavVisible = ![Screen.Chat].includes(activeScreen);
+      const isNavVisible = ![Screen.Chat, Screen.SkillSearch].includes(activeScreen); // Ocultar nav para SkillSearch também
 
       return (
           <>

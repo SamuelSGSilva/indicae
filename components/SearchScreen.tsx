@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { User } from '../types';
+import { User, Screen } from '../types';
 import { icons, calculateAge } from '../constants';
 
 interface SearchScreenProps {
   users: User[];
   onUserClick: (user: User) => void;
   onBack: () => void;
+  onNavigate: (screen: Screen) => void; // Adicionado onNavigate prop
 }
 
 const UserCard: React.FC<{ user: User, onClick: () => void }> = ({ user, onClick }) => (
@@ -17,7 +18,7 @@ const UserCard: React.FC<{ user: User, onClick: () => void }> = ({ user, onClick
     </div>
 )
 
-const SearchScreen: React.FC<SearchScreenProps> = ({ users, onUserClick, onBack }) => {
+const SearchScreen: React.FC<SearchScreenProps> = ({ users, onUserClick, onBack, onNavigate }) => {
   const [query, setQuery] = useState('');
 
   const filteredUsers = users.filter(user => 
@@ -39,10 +40,10 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ users, onUserClick, onBack 
       </header>
       
       <div className="px-4">
-        <div className="relative">
+        <div className="relative mb-4"> {/* Adicionado mb-4 para espaçamento */}
           <input 
             type="text" 
-            placeholder="Pesquise por especialidade" 
+            placeholder="Pesquise por nome ou cidade..." // Alterado placeholder
             className="w-full bg-white text-gray-800 rounded-full py-3 pl-12 pr-4 focus:outline-none"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -51,6 +52,13 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ users, onUserClick, onBack 
             {icons.search('w-6 h-6')}
           </div>
         </div>
+        {/* Novo botão para navegar para SkillSearchScreen */}
+        <button 
+          onClick={() => onNavigate(Screen.SkillSearch)} 
+          className="w-full bg-teal-600 text-white font-bold py-3 px-12 rounded-lg hover:bg-teal-700 transition-colors mb-4"
+        >
+          Buscar por Skill
+        </button>
         <div className="flex justify-between items-center mt-4 text-sm">
             <p>Local: Foz do Iguaçu</p>
             <p>Idade: 18-30</p>
