@@ -33,7 +33,7 @@ const ConnectionsScreen: React.FC<ConnectionsScreenProps> = ({ connections, onCo
   const filteredConnections = connections.filter(c => c.user.name.toLowerCase().includes(query.toLowerCase()));
   
   return (
-    <div className="w-full min-h-full bg-[#0B1526]">
+    <div className="w-full bg-[#0B1526]">
       <header className="p-4 flex justify-between items-center">
         <div className="w-6 h-6" />
         <h1 className="text-xl font-bold text-white">Conexões</h1>

@@ -107,7 +107,7 @@ const CreateProfileScreen: React.FC<CreateProfileScreenProps> = ({ user, onBack,
 
   return (
     <>
-    <div className="w-full h-full flex flex-col bg-[#0B1526] overflow-y-auto">
+    <div className="w-full flex flex-col bg-[#0B1526] overflow-y-auto">
        <header className="p-4 flex justify-between items-center flex-shrink-0">
         <button onClick={onBack} className="text-white">{icons.back('w-6 h-6')}</button>
         <h1 className="text-xl font-bold text-white">Criar Meu Perfil</h1>

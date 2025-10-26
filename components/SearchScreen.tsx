@@ -28,7 +28,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ users, onUserClick, onBack 
   );
   
   return (
-    <div className="w-full min-h-full bg-[#0B1526]">
+    <div className="w-full bg-[#0B1526]">
       <header className="p-4 flex justify-between items-center">
         <div className="w-6 h-6" />
         <h1 className="text-xl font-bold text-white">Buscar Conexões</h1>

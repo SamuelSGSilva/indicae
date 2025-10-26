@@ -29,7 +29,7 @@ const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ user, onEdit, onL
   const hasHardSkills = user.hardSkills && user.hardSkills.length > 0;
 
   return (
-    <div className="w-full h-full flex flex-col bg-[#0B1526] text-white">
+    <div className="w-full flex flex-col bg-[#0B1526] text-white">
       <header className="p-4 flex items-center justify-between flex-shrink-0 z-10">
         <div className="w-8"></div> {/* Spacer */}
         <h1 className="text-xl font-bold">Perfil</h1>
