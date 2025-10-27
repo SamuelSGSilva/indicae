@@ -32,7 +32,7 @@ const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ user, onEdit, onL
     <div className="w-full flex flex-col bg-[#0B1526] text-white">
       <header className="p-4 flex items-center justify-between flex-shrink-0 z-10">
         <div className="w-8"></div> {/* Spacer */}
-        <h1 className="text-xl font-bold text-white">Indicai</h1>
+        <h1 className="text-xl font-bold text-white">Indicae</h1>
         <button onClick={onLogout} className="p-1 rounded-full hover:bg-white/10 transition-colors" aria-label="Sair">
           {icons.share('w-6 h-6')}
         </button>

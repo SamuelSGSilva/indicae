@@ -110,7 +110,7 @@ const CreateProfileScreen: React.FC<CreateProfileScreenProps> = ({ user, onBack,
     <div className="w-full flex flex-col bg-[#0B1526] overflow-y-auto">
        <header className="p-4 flex justify-between items-center flex-shrink-0">
         <button onClick={onBack} className="text-white">{icons.back('w-6 h-6')}</button>
-        <h1 className="text-xl font-bold text-white">Indicai</h1>
+        <h1 className="text-xl font-bold text-white">Indicae</h1>
         <div className="w-6 h-6"></div> {/* Placeholder para manter o espaçamento */}
       </header>
 
