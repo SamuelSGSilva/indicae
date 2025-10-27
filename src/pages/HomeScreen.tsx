@@ -45,12 +45,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ currentUser, onNavigate }) => {
         {/* Cartão: Novas Conexões */}
         <div className="bg-[#0d1b2a] rounded-2xl p-5 shadow-lg">
           <div className="flex items-center mb-4">
-            {icons.connections('w-8 h-8 text-blue-400')}
+            {icons.code('w-8 h-8 text-blue-400')} {/* Ícone alterado para 'code' */}
             <h3 className="text-xl font-bold text-white ml-3">Novas Conexões</h3>
           </div>
           <div className="space-y-3">
             <button
-              onClick={() => onNavigate(Screen.Search)} // Pode ser uma tela específica para indicar talento
+              onClick={() => onNavigate(Screen.Search)}
               className="w-full flex items-center justify-center bg-teal-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-teal-700 transition-colors"
             >
               {icons.plus('w-5 h-5 mr-2')} Indicar novo Talento
@@ -59,7 +59,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ currentUser, onNavigate }) => {
               onClick={() => onNavigate(Screen.Connections)}
               className="w-full flex items-center justify-center bg-gray-700 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-600 transition-colors"
             >
-              {icons.connections('w-5 h-5 mr-2')} Explorar minha Rede
+              {icons.code('w-5 h-5 mr-2')} Explorar minha Rede
             </button>
           </div>
         </div>
