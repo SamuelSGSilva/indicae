@@ -11,15 +11,16 @@ import CreateProfileScreen from '../components/CreateProfileScreen';
 import LoginScreen from '../components/LoginScreen';
 import RegistrationScreen from '../components/RegistrationScreen';
 import SkillSearchScreen from './components/SkillSearchScreen';
-import InitialScreen from './pages/InitialScreen'; // Importar a nova tela inicial
+import InitialScreen from './pages/InitialScreen';
+import HomeScreen from './pages/HomeScreen'; // Importar a nova tela inicial pós-login
 import ToastProvider from './components/ToastProvider';
 import { supabase } from './integrations/supabase/client';
 import toast from 'react-hot-toast';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [authFlowScreen, setAuthFlowScreen] = useState<'initial' | 'login' | 'register'>('initial'); // Novo estado para o fluxo de autenticação
-  const [history, setHistory] = useState<Screen[]>([Screen.Search]);
+  const [authFlowScreen, setAuthFlowScreen] = useState<'initial' | 'login' | 'register'>('initial');
+  const [history, setHistory] = useState<Screen[]>([Screen.Initial]); // Iniciar com InitialScreen
   const activeScreen = history[history.length - 1];
   const [chattingWith, setChattingWith] = useState<User | null>(null);
 
@@ -45,7 +46,8 @@ const App: React.FC = () => {
           toast.error('Erro ao carregar perfil.');
           setIsAuthenticated(false);
           setCurrentUser(null);
-          setAuthFlowScreen('initial'); // Voltar para a tela inicial se houver erro no perfil
+          setAuthFlowScreen('initial');
+          setHistory([Screen.Initial]); // Voltar para a tela inicial se houver erro no perfil
           return;
         }
 
@@ -64,6 +66,7 @@ const App: React.FC = () => {
           };
           setCurrentUser(user);
           setIsAuthenticated(true);
+          setHistory([Screen.Home]); // Definir HomeScreen como a primeira tela após o login
           toast.success(`Bem-vindo(a), ${user.name}!`);
         } else {
           // Profile not found, but user is authenticated. This might happen if the trigger failed.
@@ -74,13 +77,15 @@ const App: React.FC = () => {
             name: session.user.email || 'Usuário',
             dob: '', city: '', avatar: '', email: session.user.email || ''
           });
+          setHistory([Screen.Home]); // Definir HomeScreen mesmo se o perfil estiver incompleto
           toast.warn('Seu perfil está incompleto. Por favor, edite-o.');
         }
       } else {
         // User is not authenticated
         setIsAuthenticated(false);
         setCurrentUser(null);
-        setAuthFlowScreen('initial'); // Redirecionar para a tela inicial
+        setAuthFlowScreen('initial');
+        setHistory([Screen.Initial]); // Redirecionar para a tela inicial de autenticação
         toast.dismiss();
       }
     });
@@ -224,7 +229,7 @@ const App: React.FC = () => {
       toast.error(error.message);
     } else if (data.user) {
       toast.success('Cadastro realizado com sucesso! Verifique seu email para confirmar a conta.');
-      setAuthFlowScreen('login'); // Após o cadastro, direcionar para a tela de login
+      setAuthFlowScreen('login');
     }
   };
 
@@ -234,7 +239,7 @@ const App: React.FC = () => {
       toast.error('Erro ao fazer logout.');
     } else {
       toast.success('Logout realizado com sucesso!');
-      setHistory([Screen.Search]);
+      setHistory([Screen.Initial]); // Redefinir para InitialScreen no logout
     }
   };
 
@@ -252,6 +257,8 @@ const App: React.FC = () => {
     }
     
     switch (activeScreen) {
+      case Screen.Home: // Nova tela inicial pós-login
+        return currentUser ? <HomeScreen currentUser={currentUser} onNavigate={handleNavigate} /> : <div className="p-4 text-center">Carregando...</div>;
       case Screen.Search:
         return <SearchScreen users={users.filter(u => u.id !== currentUser?.id)} onUserClick={handleStartChat} onBack={handleBack} onNavigate={handleNavigate} />;
       case Screen.Connections:
@@ -265,7 +272,7 @@ const App: React.FC = () => {
       case Screen.SkillSearch:
         return <SkillSearchScreen allUsers={users.filter(u => u.id !== currentUser?.id)} onUserClick={handleStartChat} onBack={handleBack} />;
       default:
-        return <SearchScreen users={users.filter(u => u.id !== currentUser?.id)} onUserClick={handleStartChat} onBack={handleBack} onNavigate={handleNavigate} />;
+        return <HomeScreen currentUser={currentUser!} onNavigate={handleNavigate} />; // Fallback para HomeScreen
     }
   };
   
@@ -283,7 +290,7 @@ const App: React.FC = () => {
           return <RegistrationScreen onRegister={handleRegister} onNavigateToLogin={() => setAuthFlowScreen('login')} />;
       }
 
-      const isNavVisible = ![Screen.Chat, Screen.SkillSearch].includes(activeScreen);
+      const isNavVisible = ![Screen.Chat, Screen.SkillSearch, Screen.Initial].includes(activeScreen); // InitialScreen não deve ter nav
 
       return (
           <>

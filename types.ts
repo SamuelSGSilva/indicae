@@ -6,7 +6,8 @@ export enum Screen {
   Chat = 'Chat',
   CreateProfile = 'CreateProfile',
   SkillSearch = 'SkillSearch',
-  Initial = 'Initial', // Nova tela inicial
+  Initial = 'Initial',
+  Home = 'Home', // Nova tela inicial pós-login
 }
 
 export interface User {
