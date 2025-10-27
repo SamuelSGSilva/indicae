@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Screen, User, ConnectionRequest, Message, ChatThread } from '../types'; // Caminho corrigido
-import { db } from '../db'; // Corrected import path
+import { Screen, User, ConnectionRequest, Message, ChatThread } from '../types';
+import { db } from '../db';
 import BottomNav from '../components/BottomNav';
 import UserProfileScreen from '../components/UserProfileScreen';
 import SearchScreen from '../components/SearchScreen';
@@ -10,20 +10,21 @@ import ChatScreen from '../components/ChatScreen';
 import CreateProfileScreen from '../components/CreateProfileScreen';
 import LoginScreen from '../components/LoginScreen';
 import RegistrationScreen from '../components/RegistrationScreen';
-import SkillSearchScreen from './components/SkillSearchScreen'; // Import new screen - Caminho corrigido
-import ToastProvider from './components/ToastProvider'; // Import ToastProvider
-import { supabase } from './integrations/supabase/client'; // Import Supabase client
-import toast from 'react-hot-toast'; // Import toast for notifications
+import SkillSearchScreen from './components/SkillSearchScreen';
+import InitialScreen from './pages/InitialScreen'; // Importar a nova tela inicial
+import ToastProvider from './components/ToastProvider';
+import { supabase } from './integrations/supabase/client';
+import toast from 'react-hot-toast';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [authScreen, setAuthScreen] = useState<'login' | 'register'>('login');
+  const [authFlowScreen, setAuthFlowScreen] = useState<'initial' | 'login' | 'register'>('initial'); // Novo estado para o fluxo de autenticação
   const [history, setHistory] = useState<Screen[]>([Screen.Search]);
   const activeScreen = history[history.length - 1];
   const [chattingWith, setChattingWith] = useState<User | null>(null);
 
   // App-wide state from our DB (will be partially migrated to Supabase)
-  const [users, setUsers] = useState<User[]>([]); // Still used for mock users/connections
+  const [users, setUsers] = useState<User[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [connections, setConnections] = useState<ConnectionRequest[]>([]);
   const [chats, setChats] = useState<ChatThread[]>([]);
@@ -44,13 +45,14 @@ const App: React.FC = () => {
           toast.error('Erro ao carregar perfil.');
           setIsAuthenticated(false);
           setCurrentUser(null);
+          setAuthFlowScreen('initial'); // Voltar para a tela inicial se houver erro no perfil
           return;
         }
 
         if (profile) {
           // Map Supabase profile to your User type
           const user: User = {
-            id: profile.id, // Supabase user ID (string)
+            id: profile.id,
             name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
             dob: profile.dob || '',
             city: profile.city || '',
@@ -66,9 +68,9 @@ const App: React.FC = () => {
         } else {
           // Profile not found, but user is authenticated. This might happen if the trigger failed.
           console.warn('Supabase user authenticated but no profile found.');
-          setIsAuthenticated(true); // Still authenticated, but profile data is missing
-          setCurrentUser({ // Create a basic user object from session
-            id: session.user.id, // ID é string
+          setIsAuthenticated(true);
+          setCurrentUser({
+            id: session.user.id,
             name: session.user.email || 'Usuário',
             dob: '', city: '', avatar: '', email: session.user.email || ''
           });
@@ -78,13 +80,14 @@ const App: React.FC = () => {
         // User is not authenticated
         setIsAuthenticated(false);
         setCurrentUser(null);
-        toast.dismiss(); // Dismiss any lingering toasts
+        setAuthFlowScreen('initial'); // Redirecionar para a tela inicial
+        toast.dismiss();
       }
     });
 
     // Load mock data for connections and chats (these are not yet in Supabase)
     const data = db.initialize();
-    setUsers(data.users); // Keep mock users for search/connections for now
+    setUsers(data.users);
     setConnections(data.connections);
     setChats(data.chats);
 
@@ -131,38 +134,38 @@ const App: React.FC = () => {
           dob: updatedUser.dob,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', currentUser.id); // currentUser.id já é string
+        .eq('id', currentUser.id);
 
       if (error) {
         console.error('Error updating profile:', error);
         toast.error('Erro ao salvar perfil.');
       } else {
-        setCurrentUser(updatedUser); // Update local state
+        setCurrentUser(updatedUser);
         toast.success('Perfil salvo com sucesso!');
         handleBack();
       }
   };
 
-  const handleConnectionAction = (connectionId: string, action: 'accept' | 'reject') => { // connectionId é string
+  const handleConnectionAction = (connectionId: string, action: 'accept' | 'reject') => {
       db.handleConnection(connectionId, action);
       if (action === 'accept') {
         const conn = connections.find(c => c.id === connectionId);
         if (conn && !chats.some(c => c.contact.id === conn.user.id)) {
-          setChats(prev => [...prev, { id: Date.now().toString(), contact: conn.user, messages: [] }]); // ID do chat é string
+          setChats(prev => [...prev, { id: Date.now().toString(), contact: conn.user, messages: [] }]);
         }
       }
       setConnections(prev => prev.filter(c => c.id !== connectionId));
   };
   
-  const handleSendMessage = (chatPartnerId: string, text: string) => { // chatPartnerId é string
+  const handleSendMessage = (chatPartnerId: string, text: string) => {
       if (!currentUser) return;
 
-      const newId = Date.now().toString(); // ID da mensagem é string
+      const newId = Date.now().toString();
       const newMessage: Message = {
           id: newId,
           text,
           time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-          senderId: currentUser.id, // senderId é string
+          senderId: currentUser.id,
           avatar: currentUser.avatar
       };
       
@@ -193,7 +196,6 @@ const App: React.FC = () => {
     if (error) {
       toast.error(error.message);
     } else {
-      // Auth state change listener will handle setting isAuthenticated and currentUser
       toast.success('Login realizado com sucesso!');
     }
   };
@@ -222,7 +224,7 @@ const App: React.FC = () => {
       toast.error(error.message);
     } else if (data.user) {
       toast.success('Cadastro realizado com sucesso! Verifique seu email para confirmar a conta.');
-      setAuthScreen('login');
+      setAuthFlowScreen('login'); // Após o cadastro, direcionar para a tela de login
     }
   };
 
@@ -232,8 +234,7 @@ const App: React.FC = () => {
       toast.error('Erro ao fazer logout.');
     } else {
       toast.success('Logout realizado com sucesso!');
-      // Auth state change listener will handle setting isAuthenticated and currentUser
-      setHistory([Screen.Search]); // Reset navigation
+      setHistory([Screen.Search]);
     }
   };
 
@@ -246,13 +247,12 @@ const App: React.FC = () => {
                 messages={chat?.messages || []} 
                 onBack={handleBack} 
                 onSendMessage={(text) => handleSendMessage(chattingWith.id, text)} 
-                currentUserId={currentUser.id} // currentUser.id é string
+                currentUserId={currentUser.id}
              />;
     }
     
     switch (activeScreen) {
       case Screen.Search:
-        // Comparando IDs de string
         return <SearchScreen users={users.filter(u => u.id !== currentUser?.id)} onUserClick={handleStartChat} onBack={handleBack} onNavigate={handleNavigate} />;
       case Screen.Connections:
         return <ConnectionsScreen connections={connections} onConnectionAction={handleConnectionAction} onUserClick={handleStartChat} onBack={handleBack} />;
@@ -262,7 +262,7 @@ const App: React.FC = () => {
         return currentUser ? <UserProfileScreen user={currentUser} onEdit={handleCreateProfile} onLogout={handleLogout} /> : <div className="p-4 text-center">Carregando perfil...</div>;
       case Screen.CreateProfile:
         return currentUser ? <CreateProfileScreen user={currentUser} onBack={handleBack} onSave={handleSaveProfile}/> : <div className="p-4 text-center">Carregando...</div>;
-      case Screen.SkillSearch: // Novo caso para SkillSearchScreen
+      case Screen.SkillSearch:
         return <SkillSearchScreen allUsers={users.filter(u => u.id !== currentUser?.id)} onUserClick={handleStartChat} onBack={handleBack} />;
       default:
         return <SearchScreen users={users.filter(u => u.id !== currentUser?.id)} onUserClick={handleStartChat} onBack={handleBack} onNavigate={handleNavigate} />;
@@ -275,13 +275,15 @@ const App: React.FC = () => {
       }
 
       if (!isAuthenticated) {
-          if (authScreen === 'login') {
-              return <LoginScreen onLogin={handleLogin} onNavigateToRegister={() => setAuthScreen('register')} />;
+          if (authFlowScreen === 'initial') {
+              return <InitialScreen onNavigateToLogin={() => setAuthFlowScreen('login')} onNavigateToRegister={() => setAuthFlowScreen('register')} />;
+          } else if (authFlowScreen === 'login') {
+              return <LoginScreen onLogin={handleLogin} onNavigateToRegister={() => setAuthFlowScreen('register')} />;
           }
-          return <RegistrationScreen onRegister={handleRegister} onNavigateToLogin={() => setAuthScreen('login')} />;
+          return <RegistrationScreen onRegister={handleRegister} onNavigateToLogin={() => setAuthFlowScreen('login')} />;
       }
 
-      const isNavVisible = ![Screen.Chat, Screen.SkillSearch].includes(activeScreen); // Ocultar nav para SkillSearch também
+      const isNavVisible = ![Screen.Chat, Screen.SkillSearch].includes(activeScreen);
 
       return (
           <>
@@ -296,7 +298,7 @@ const App: React.FC = () => {
   return (
     <div className="flex items-center justify-center min-h-screen font-sans bg-gray-900">
       <div className="relative w-full max-w-sm h-[850px] bg-[#0B1526] text-white shadow-2xl rounded-lg overflow-hidden flex flex-col">
-        <ToastProvider /> {/* Add ToastProvider here */}
+        <ToastProvider />
         {renderContent()}
       </div>
     </div>
