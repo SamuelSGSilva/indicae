@@ -75,7 +75,7 @@ const App: React.FC = () => {
         status,
         interest_message,
         created_at,
-        sender_profile:profiles( // Alias para o perfil do remetente
+        sender_profile:profiles!connection_requests_sender_id_fkey(
           id,
           first_name,
           last_name,
@@ -97,7 +97,7 @@ const App: React.FC = () => {
     }
 
     const mappedIncomingRequests: ConnectionRequest[] = incomingRequests.map((req: any) => {
-      const senderProfile = req.sender_profile; // Usando o alias
+      const senderProfile = req.sender_profile;
       return {
         id: req.id,
         sender_id: req.sender_id,
@@ -130,7 +130,7 @@ const App: React.FC = () => {
         status,
         interest_message,
         created_at,
-        receiver_profile:profiles( // Alias para o perfil do destinatário
+        receiver_profile:profiles!connection_requests_receiver_id_fkey(
           id,
           first_name,
           last_name,
@@ -151,7 +151,7 @@ const App: React.FC = () => {
       return;
     }
     const mappedSentRequests: ConnectionRequest[] = sentRequests.map((req: any) => {
-        const receiverProfile = req.receiver_profile; // Usando o alias
+        const receiverProfile = req.receiver_profile;
         return {
             id: req.id,
             sender_id: req.sender_id,
@@ -184,10 +184,10 @@ const App: React.FC = () => {
         status,
         interest_message,
         created_at,
-        sender_profile:profiles(
+        sender_profile:profiles!connection_requests_sender_id_fkey(
           id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills
         ),
-        receiver_profile:profiles(
+        receiver_profile:profiles!connection_requests_receiver_id_fkey(
           id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills
         )
       `)
@@ -201,7 +201,7 @@ const App: React.FC = () => {
     }
 
     const mappedAcceptedConns: ConnectionRequest[] = acceptedConns.map((req: any) => {
-        const otherProfile = req.sender_id === userId ? req.receiver_profile : req.sender_profile; // Usando os aliases
+        const otherProfile = req.sender_id === userId ? req.receiver_profile : req.sender_profile;
         return {
             id: req.id,
             sender_id: req.sender_id,
