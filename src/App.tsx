@@ -13,7 +13,7 @@ const LoginScreen = lazy(() => import('../components/LoginScreen'));
 const RegistrationScreen = lazy(() => import('../components/RegistrationScreen'));
 const SkillSearchScreen = lazy(() => import('./components/SkillSearchScreen'));
 const InitialScreen = lazy(() => import('./pages/InitialScreen'));
-const HomeScreen = lazy(() => import('./pages/HomeScreen'));
+const HomeScreen = lazy(() => import('./pages/HomeScreen.tsx')); // Adicionado .tsx explicitamente
 const OtherUserProfileScreen = lazy(() => import('./components/OtherUserProfileScreen')); // Novo lazy import
 
 import ToastProvider from './components/ToastProvider';
@@ -31,7 +31,7 @@ const App: React.FC = () => {
   // App-wide state from our DB (will be partially migrated to Supabase)
   const [users, setUsers] = useState<User[]>([]); // Now populated from Supabase
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [connections, setConnections] = useState<ConnectionRequest[]>([]); // Now managed by Supabase
+  const [connections, setConnections] = useState<ConnectionRequest[]>([]); // Now managed by Supabase (incoming pending)
   const [sentConnectionRequests, setSentConnectionRequests] = useState<ConnectionRequest[]>([]); // Para rastrear solicitações enviadas
   const [acceptedConnections, setAcceptedConnections] = useState<ConnectionRequest[]>([]); // Para rastrear conexões aceitas
   const [chats, setChats] = useState<ChatThread[]>([]);
