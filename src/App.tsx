@@ -25,10 +25,38 @@ const App: React.FC = () => {
   const [chattingWith, setChattingWith] = useState<User | null>(null);
 
   // App-wide state from our DB (will be partially migrated to Supabase)
-  const [users, setUsers] = useState<User[]>([]); // Still used for mock users/search
+  const [users, setUsers] = useState<User[]>([]); // Now populated from Supabase
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [connections, setConnections] = useState<ConnectionRequest[]>([]); // Now managed by Supabase
   const [chats, setChats] = useState<ChatThread[]>([]);
+
+  // Function to fetch all user profiles from Supabase
+  const fetchAllUsers = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*');
+
+    if (error) {
+      console.error('Error fetching all user profiles:', error);
+      toast.error('Erro ao carregar usuários para busca.');
+      return [];
+    }
+
+    const fetchedUsers: User[] = data.map((profile: any) => ({
+      id: profile.id,
+      name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
+      dob: profile.dob || '',
+      city: profile.city || '',
+      avatar: profile.avatar_url || `https://picsum.photos/seed/${profile.id}/200/200`,
+      education: profile.education || '',
+      softSkills: profile.soft_skills || [],
+      hardSkills: profile.hard_skills || [],
+      email: '', // Email is not directly available from profiles table in this query
+      // state is not available in Supabase profiles table, so it will be undefined
+    }));
+    setUsers(fetchedUsers);
+    return fetchedUsers;
+  }, []);
 
   // Function to fetch connection requests from Supabase
   const fetchConnections = useCallback(async (userId: string) => {
@@ -125,6 +153,7 @@ const App: React.FC = () => {
           setHistory([Screen.Home]);
           toast.success(`Bem-vindo(a), ${user.name}!`);
           fetchConnections(user.id); // Fetch connections for the current user
+          fetchAllUsers(); // Fetch all users for search
         } else {
           console.warn('Supabase user authenticated but no profile found.');
           setIsAuthenticated(true);
@@ -136,6 +165,7 @@ const App: React.FC = () => {
           setHistory([Screen.Home]);
           toast.warn('Seu perfil está incompleto. Por favor, edite-o.');
           fetchConnections(session.user.id); // Still try to fetch connections
+          fetchAllUsers(); // Fetch all users for search
         }
       } else {
         setIsAuthenticated(false);
@@ -144,18 +174,18 @@ const App: React.FC = () => {
         setHistory([Screen.Initial]);
         toast.dismiss();
         setConnections([]); // Clear connections on logout
+        setUsers([]); // Clear users on logout
       }
     });
 
-    // Load mock data for users and chats (these are not yet fully in Supabase)
+    // Load mock data for chats (these are not yet fully in Supabase)
     const data = db.initialize();
-    setUsers(data.users);
     setChats(data.chats);
 
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [fetchConnections]); // Add fetchConnections to dependency array
+  }, [fetchConnections, fetchAllUsers]); // Add fetchAllUsers to dependency array
 
   const handleNavigate = (screen: Screen) => {
     setChattingWith(null);
@@ -204,6 +234,7 @@ const App: React.FC = () => {
         setCurrentUser(updatedUser);
         toast.success('Perfil salvo com sucesso!');
         handleBack();
+        fetchAllUsers(); // Refresh all users after profile update
       }
   };
 
