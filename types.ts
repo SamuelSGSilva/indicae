@@ -5,10 +5,14 @@ export enum Screen {
   Profile = 'Perfil',
   Chat = 'Chat',
   CreateProfile = 'CreateProfile',
+  SkillSearch = 'SkillSearch',
+  Initial = 'Initial',
+  Home = 'Home',
+  OtherUserProfile = 'OtherUserProfile',
 }
 
 export interface User {
-  id: number;
+  id: string; // Alterado de number para string
   name: string;
   dob: string;
   city: string;
@@ -22,21 +26,25 @@ export interface User {
 }
 
 export interface ConnectionRequest {
-  id: number;
+  id: string; // Alterado de number para string
+  sender_id: string; // Adicionado para consistência com Supabase
+  receiver_id: string; // Adicionado para consistência com Supabase
+  status: 'pending' | 'accepted' | 'rejected'; // Adicionado para consistência com Supabase
+  interest_message?: string; // Adicionado para consistência com Supabase
+  created_at?: string; // Adicionado para consistência com Supabase
   user: User;
-  interest: string;
 }
 
 export interface Message {
-  id: number;
+  id: string; // Alterado de number para string
   text: string;
   time: string;
-  senderId: number;
+  senderId: string; // Alterado de number para string
   avatar: string;
 }
 
 export interface ChatThread {
-    id: number;
+    id: string; // Alterado de number para string
     contact: User;
     messages: Message[];
 }
