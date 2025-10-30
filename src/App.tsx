@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Screen, User, ConnectionRequest, Message, ChatThread } from '../types';
 import { db } from '../db';
 import BottomNav from '../components/BottomNav';
@@ -12,7 +12,7 @@ import LoginScreen from '../components/LoginScreen';
 import RegistrationScreen from '../components/RegistrationScreen';
 import SkillSearchScreen from './components/SkillSearchScreen';
 import InitialScreen from './pages/InitialScreen';
-import HomeScreen from './pages/HomeScreen'; // Importar a nova tela inicial pós-login
+import HomeScreen from './pages/HomeScreen';
 import ToastProvider from './components/ToastProvider';
 import { supabase } from './integrations/supabase/client';
 import toast from 'react-hot-toast';
@@ -20,21 +20,78 @@ import toast from 'react-hot-toast';
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [authFlowScreen, setAuthFlowScreen] = useState<'initial' | 'login' | 'register'>('initial');
-  const [history, setHistory] = useState<Screen[]>([Screen.Initial]); // Iniciar com InitialScreen
+  const [history, setHistory] = useState<Screen[]>([Screen.Initial]);
   const activeScreen = history[history.length - 1];
   const [chattingWith, setChattingWith] = useState<User | null>(null);
 
   // App-wide state from our DB (will be partially migrated to Supabase)
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<User[]>([]); // Still used for mock users/search
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [connections, setConnections] = useState<ConnectionRequest[]>([]);
+  const [connections, setConnections] = useState<ConnectionRequest[]>([]); // Now managed by Supabase
   const [chats, setChats] = useState<ChatThread[]>([]);
+
+  // Function to fetch connection requests from Supabase
+  const fetchConnections = useCallback(async (userId: string) => {
+    const { data, error } = await supabase
+      .from('connection_requests')
+      .select(`
+        id,
+        sender_id,
+        receiver_id,
+        status,
+        interest_message,
+        created_at,
+        profiles!connection_requests_sender_id_fkey(
+          id,
+          first_name,
+          last_name,
+          avatar_url,
+          dob,
+          city,
+          education,
+          soft_skills,
+          hard_skills
+        )
+      `)
+      .eq('receiver_id', userId)
+      .eq('status', 'pending');
+
+    if (error) {
+      console.error('Error fetching connection requests:', error);
+      toast.error('Erro ao carregar solicitações de conexão.');
+      return [];
+    }
+
+    const fetchedConnections: ConnectionRequest[] = data.map((req: any) => {
+      const senderProfile = req.profiles;
+      return {
+        id: req.id,
+        sender_id: req.sender_id,
+        receiver_id: req.receiver_id,
+        status: req.status,
+        interest_message: req.interest_message,
+        created_at: req.created_at,
+        user: { // Map sender profile to User type
+          id: senderProfile.id,
+          name: `${senderProfile.first_name || ''} ${senderProfile.last_name || ''}`.trim(),
+          avatar: senderProfile.avatar_url || `https://picsum.photos/seed/${senderProfile.id}/200/200`,
+          dob: senderProfile.dob || '',
+          city: senderProfile.city || '',
+          education: senderProfile.education || '',
+          softSkills: senderProfile.soft_skills || [],
+          hardSkills: senderProfile.hard_skills || [],
+          email: '', // Email is not directly available from profiles table in this query
+        },
+      };
+    });
+    setConnections(fetchedConnections);
+    return fetchedConnections;
+  }, []);
 
   // Initialize DB and check auth state
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
-        // User is authenticated via Supabase
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('*')
@@ -47,12 +104,11 @@ const App: React.FC = () => {
           setIsAuthenticated(false);
           setCurrentUser(null);
           setAuthFlowScreen('initial');
-          setHistory([Screen.Initial]); // Voltar para a tela inicial se houver erro no perfil
+          setHistory([Screen.Initial]);
           return;
         }
 
         if (profile) {
-          // Map Supabase profile to your User type
           const user: User = {
             id: profile.id,
             name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
@@ -66,10 +122,10 @@ const App: React.FC = () => {
           };
           setCurrentUser(user);
           setIsAuthenticated(true);
-          setHistory([Screen.Home]); // Definir HomeScreen como a primeira tela após o login
+          setHistory([Screen.Home]);
           toast.success(`Bem-vindo(a), ${user.name}!`);
+          fetchConnections(user.id); // Fetch connections for the current user
         } else {
-          // Profile not found, but user is authenticated. This might happen if the trigger failed.
           console.warn('Supabase user authenticated but no profile found.');
           setIsAuthenticated(true);
           setCurrentUser({
@@ -77,29 +133,29 @@ const App: React.FC = () => {
             name: session.user.email || 'Usuário',
             dob: '', city: '', avatar: '', email: session.user.email || ''
           });
-          setHistory([Screen.Home]); // Definir HomeScreen mesmo se o perfil estiver incompleto
+          setHistory([Screen.Home]);
           toast.warn('Seu perfil está incompleto. Por favor, edite-o.');
+          fetchConnections(session.user.id); // Still try to fetch connections
         }
       } else {
-        // User is not authenticated
         setIsAuthenticated(false);
         setCurrentUser(null);
         setAuthFlowScreen('initial');
-        setHistory([Screen.Initial]); // Redirecionar para a tela inicial de autenticação
+        setHistory([Screen.Initial]);
         toast.dismiss();
+        setConnections([]); // Clear connections on logout
       }
     });
 
-    // Load mock data for connections and chats (these are not yet in Supabase)
+    // Load mock data for users and chats (these are not yet fully in Supabase)
     const data = db.initialize();
     setUsers(data.users);
-    setConnections(data.connections);
     setChats(data.chats);
 
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchConnections]); // Add fetchConnections to dependency array
 
   const handleNavigate = (screen: Screen) => {
     setChattingWith(null);
@@ -151,15 +207,30 @@ const App: React.FC = () => {
       }
   };
 
-  const handleConnectionAction = (connectionId: string, action: 'accept' | 'reject') => {
-      db.handleConnection(connectionId, action);
-      if (action === 'accept') {
-        const conn = connections.find(c => c.id === connectionId);
-        if (conn && !chats.some(c => c.contact.id === conn.user.id)) {
-          setChats(prev => [...prev, { id: Date.now().toString(), contact: conn.user, messages: [] }]);
+  const handleConnectionAction = async (connectionId: string, action: 'accept' | 'reject') => {
+      if (!currentUser) return;
+
+      const { error } = await supabase
+        .from('connection_requests')
+        .update({ status: action })
+        .eq('id', connectionId)
+        .eq('receiver_id', currentUser.id); // Ensure only the receiver can update
+
+      if (error) {
+        console.error(`Error ${action}ing connection:`, error);
+        toast.error(`Erro ao ${action === 'accept' ? 'aceitar' : 'recusar'} conexão.`);
+      } else {
+        toast.success(`Conexão ${action === 'accept' ? 'aceita' : 'recusada'} com sucesso!`);
+        // Re-fetch connections to update the UI
+        fetchConnections(currentUser.id);
+
+        if (action === 'accept') {
+          const acceptedConnection = connections.find(c => c.id === connectionId);
+          if (acceptedConnection && !chats.some(c => c.contact.id === acceptedConnection.user.id)) {
+            setChats(prev => [...prev, { id: Date.now().toString(), contact: acceptedConnection.user, messages: [] }]);
+          }
         }
       }
-      setConnections(prev => prev.filter(c => c.id !== connectionId));
   };
   
   const handleSendMessage = (chatPartnerId: string, text: string) => {
@@ -239,7 +310,7 @@ const App: React.FC = () => {
       toast.error('Erro ao fazer logout.');
     } else {
       toast.success('Logout realizado com sucesso!');
-      setHistory([Screen.Initial]); // Redefinir para InitialScreen no logout
+      setHistory([Screen.Initial]);
     }
   };
 
@@ -257,7 +328,7 @@ const App: React.FC = () => {
     }
     
     switch (activeScreen) {
-      case Screen.Home: // Nova tela inicial pós-login
+      case Screen.Home:
         return currentUser ? <HomeScreen currentUser={currentUser} onNavigate={handleNavigate} /> : <div className="p-4 text-center">Carregando...</div>;
       case Screen.Search:
         return <SearchScreen users={users.filter(u => u.id !== currentUser?.id)} onUserClick={handleStartChat} onBack={handleBack} onNavigate={handleNavigate} />;
@@ -272,7 +343,7 @@ const App: React.FC = () => {
       case Screen.SkillSearch:
         return <SkillSearchScreen allUsers={users.filter(u => u.id !== currentUser?.id)} onUserClick={handleStartChat} onBack={handleBack} />;
       default:
-        return <HomeScreen currentUser={currentUser!} onNavigate={handleNavigate} />; // Fallback para HomeScreen
+        return <HomeScreen currentUser={currentUser!} onNavigate={handleNavigate} />;
     }
   };
   
@@ -290,7 +361,7 @@ const App: React.FC = () => {
           return <RegistrationScreen onRegister={handleRegister} onNavigateToLogin={() => setAuthFlowScreen('login')} />;
       }
 
-      const isNavVisible = ![Screen.Chat, Screen.SkillSearch, Screen.Initial].includes(activeScreen); // InitialScreen não deve ter nav
+      const isNavVisible = ![Screen.Chat, Screen.SkillSearch, Screen.Initial].includes(activeScreen);
 
       return (
           <>

@@ -26,8 +26,12 @@ export interface User {
 
 export interface ConnectionRequest {
   id: string; // Alterado de number para string
-  user: User;
-  interest: string;
+  sender_id: string; // ID do usuário que enviou a solicitação
+  receiver_id: string; // ID do usuário que recebeu a solicitação
+  user: User; // O usuário que enviou a solicitação (para a tela de conexões do receptor)
+  interest_message: string; // Mensagem de interesse
+  status: 'pending' | 'accepted' | 'rejected'; // Status da solicitação
+  created_at: string;
 }
 
 export interface Message {
