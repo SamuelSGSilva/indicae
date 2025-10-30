@@ -210,31 +210,39 @@ const App: React.FC = () => {
   
   // Data modification handlers
   const handleSaveProfile = async (updatedUser: User) => {
-      if (!currentUser) return;
+      if (!currentUser) {
+        toast.error('Usuário atual não encontrado para salvar o perfil.');
+        return;
+      }
 
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          first_name: updatedUser.name.split(' ')[0],
-          last_name: updatedUser.name.split(' ').slice(1).join(' '),
-          avatar_url: updatedUser.avatar,
-          education: updatedUser.education,
-          city: updatedUser.city,
-          soft_skills: updatedUser.softSkills,
-          hard_skills: updatedUser.hardSkills,
-          dob: updatedUser.dob,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', currentUser.id);
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .update({
+            first_name: updatedUser.name.split(' ')[0] || null,
+            last_name: updatedUser.name.split(' ').slice(1).join(' ') || null,
+            avatar_url: updatedUser.avatar || null,
+            education: updatedUser.education || null,
+            city: updatedUser.city || null,
+            soft_skills: updatedUser.softSkills || [],
+            hard_skills: updatedUser.hardSkills || [],
+            dob: updatedUser.dob || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', currentUser.id);
 
-      if (error) {
-        console.error('Error updating profile:', error);
-        toast.error('Erro ao salvar perfil.');
-      } else {
-        setCurrentUser(updatedUser);
-        toast.success('Perfil salvo com sucesso!');
-        handleBack();
-        fetchAllUsers(); // Refresh all users after profile update
+        if (error) {
+          console.error('Supabase Error updating profile:', error);
+          toast.error(`Erro ao salvar perfil: ${error.message}`);
+        } else {
+          setCurrentUser(updatedUser);
+          toast.success('Perfil salvo com sucesso!');
+          handleBack();
+          fetchAllUsers(); // Refresh all users after profile update
+        }
+      } catch (e: any) {
+        console.error('Unexpected error during profile update:', e);
+        toast.error(`Erro inesperado ao salvar perfil: ${e.message || 'Verifique o console.'}`);
       }
   };
 
