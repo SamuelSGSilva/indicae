@@ -548,7 +548,7 @@ const App: React.FC = () => {
       case Screen.Search:
         return <SearchScreen users={users.filter(u => u.id !== currentUser?.id)} onUserClick={handleViewOtherUser} onBack={handleBack} onNavigate={handleNavigate} />;
       case Screen.Connections:
-        return <ConnectionsScreen connections={connections} onConnectionAction={handleConnectionAction} onUserClick={handleStartChat} onBack={handleBack} />;
+        return <ConnectionsScreen connections={connections} onConnectionAction={handleConnectionAction} onUserClick={handleViewOtherUser} onBack={handleBack} />;
       case Screen.Messages:
           return <MessagesScreen chats={chats} onChatClick={handleStartChat} onBack={handleBack} />;
       case Screen.Profile:
