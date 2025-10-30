@@ -34,7 +34,7 @@ const App: React.FC = () => {
   const fetchAllUsers = useCallback(async () => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*');
+      .select('id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills'); // Otimizado: selecionar apenas colunas necessárias
 
     if (error) {
       console.error('Error fetching all user profiles:', error);
@@ -122,7 +122,7 @@ const App: React.FC = () => {
       if (session) {
         const { data: profile, error } = await supabase
           .from('profiles')
-          .select('*')
+          .select('id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills') // Otimizado aqui também
           .eq('id', session.user.id)
           .single();
 
