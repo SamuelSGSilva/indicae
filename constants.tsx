@@ -34,7 +34,7 @@ export const getColorForSkill = (skill: string): string => {
 };
 
 
-export const MOCK_CURRENT_USER_ID = 1;
+export const MOCK_CURRENT_USER_ID = "1"; // Alterado para string
 
 export const ALL_HARD_SKILLS = [
   'JavaScript', 'TypeScript', 'React', 'React Native', 'Angular', 'Vue.js', 'Node.js',
@@ -80,33 +80,33 @@ export const ALL_CITIES = [
 
 
 export const MOCK_USERS: User[] = [
-  { id: 1, name: 'Jefferson Henrique', dob: '2002-04-15', city: 'Foz do Iguaçu', avatar: 'https://picsum.photos/id/1005/200/200', education: 'Engenharia de Software - Uniamérica Descomplica', softSkills: ['Liderança', 'Comunicação', 'Proatividade', 'Trabalho em Equipe'], hardSkills: ['DevOps', 'Big Data', 'Inteligência Artificial', 'React Native'], email: 'jefferson@indicai.com', password: '123' },
-  { id: 2, name: 'Maria', dob: '2000-02-20', city: 'Cascavel', state: 'PR', avatar: 'https://picsum.photos/id/1011/200/200', hardSkills: ['Edição de Vídeo'], email: 'maria@example.com' },
-  { id: 3, name: 'Ana Julia', dob: '2001-07-23', city: 'Foz do Iguaçu', state: 'PR', avatar: 'https://picsum.photos/id/1012/200/200', email: 'ana@example.com' },
-  { id: 4, name: 'Hugo', dob: '2003-01-10', city: 'Foz do Iguaçu', state: 'PR', avatar: 'https://picsum.photos/id/1025/200/200', email: 'hugo@example.com' },
-  { id: 5, name: 'Tiago', dob: '1998-05-30', city: 'Medianeira', state: 'PR', avatar: 'https://picsum.photos/id/1027/200/200', email: 'tiago@example.com' },
-  { id: 6, name: 'Wellington', dob: '1995-09-05', city: 'Foz do Iguaçu', state: 'PR', avatar: 'https://picsum.photos/id/1035/200/200', email: 'wellington@example.com' },
-  { id: 7, name: 'Walter', dob: '1996-11-12', city: 'Foz do Iguaçu', state: 'PR', avatar: 'https://picsum.photos/id/1037/200/200', email: 'walter@example.com' },
-  { id: 8, name: 'Matheus', dob: '1994-03-01', city: 'Foz do Iguaçu', state: 'PR', avatar: 'https://picsum.photos/id/1040/200/200', email: 'matheus@example.com' },
-  { id: 9, name: 'Vitoria', dob: '1994-06-18', city: 'Missal', state: 'PR', avatar: 'https://picsum.photos/id/1043/200/200', email: 'vitoria@example.com' },
-  { id: 10, name: 'Beatriz Nogueira', dob: '1999-08-25', city: 'Curitiba', state: 'PR', avatar: 'https://picsum.photos/id/1028/200/200', email: 'beatriz@example.com' }
+  { id: "1", name: 'Jefferson Henrique', dob: '2002-04-15', city: 'Foz do Iguaçu', avatar: 'https://picsum.photos/id/1005/200/200', education: 'Engenharia de Software - Uniamérica Descomplica', softSkills: ['Liderança', 'Comunicação', 'Proatividade', 'Trabalho em Equipe'], hardSkills: ['DevOps', 'Big Data', 'Inteligência Artificial', 'React Native'], email: 'jefferson@indicai.com', password: '123' },
+  { id: "2", name: 'Maria', dob: '2000-02-20', city: 'Cascavel', state: 'PR', avatar: 'https://picsum.photos/id/1011/200/200', hardSkills: ['Edição de Vídeo'], email: 'maria@example.com' },
+  { id: "3", name: 'Ana Julia', dob: '2001-07-23', city: 'Foz do Iguaçu', state: 'PR', avatar: 'https://picsum.photos/id/1012/200/200', email: 'ana@example.com' },
+  { id: "4", name: 'Hugo', dob: '2003-01-10', city: 'Foz do Iguaçu', state: 'PR', avatar: 'https://picsum.photos/id/1025/200/200', email: 'hugo@example.com' },
+  { id: "5", name: 'Tiago', dob: '1998-05-30', city: 'Medianeira', state: 'PR', avatar: 'https://picsum.photos/id/1027/200/200', email: 'tiago@example.com' },
+  { id: "6", name: 'Wellington', dob: '1995-09-05', city: 'Foz do Iguaçu', state: 'PR', avatar: 'https://picsum.photos/id/1035/200/200', email: 'wellington@example.com' },
+  { id: "7", name: 'Walter', dob: '1996-11-12', city: 'Foz do Iguaçu', state: 'PR', avatar: 'https://picsum.photos/id/1037/200/200', email: 'walter@example.com' },
+  { id: "8", name: 'Matheus', dob: '1994-03-01', city: 'Foz do Iguaçu', state: 'PR', avatar: 'https://picsum.photos/id/1040/200/200', email: 'matheus@example.com' },
+  { id: "9", name: 'Vitoria', dob: '1994-06-18', city: 'Missal', state: 'PR', avatar: 'https://picsum.photos/id/1043/200/200', email: 'vitoria@example.com' },
+  { id: "10", name: 'Beatriz Nogueira', dob: '1999-08-25', city: 'Curitiba', state: 'PR', avatar: 'https://picsum.photos/id/1028/200/200', email: 'beatriz@example.com' }
 ];
 
 export const MOCK_CONNECTIONS: ConnectionRequest[] = [
-  { id: 1, user: { id: 11, name: 'Davi Souza', dob: '1997-01-19', city: 'São Paulo', avatar: 'https://picsum.photos/id/21/200/200', email: 'davi@example.com' }, interest: 'Interesse em sua habilidade em React Native' },
-  { id: 3, user: { id: 13, name: 'João Silva', dob: '1995-03-29', city: 'Belo Horizonte', avatar: 'https://picsum.photos/id/23/200/200', email: 'joao@example.com' }, interest: 'Interesse em sua habilidade em DevOps' },
-  { id: 4, user: { id: 14, name: 'Maria', dob: '2000-02-20', city: 'Cascavel', avatar: 'https://picsum.photos/id/1011/200/200', email: 'maria2@example.com' }, interest: 'Interesse em sua habilidade edição de vídeo' },
-  { id: 5, user: { id: 15, name: 'Silvio Abreu', dob: '1989-04-04', city: 'Brasília', avatar: 'https://picsum.photos/id/25/200/200', email: 'silvio@example.com' }, interest: 'Interesse em suas habilidades em Inteligência Artificial e DevOps' },
-  { id: 6, user: { id: 16, name: 'Silvio Abreu', dob: '1989-04-04', city: 'Brasília', avatar: 'https://picsum.photos/id/25/200/200', email: 'silvio2@example.com' }, interest: 'Interesse em suas habilidades em Cloud' },
+  { id: "conn-1", sender_id: "11", receiver_id: "1", user: { id: "11", name: 'Davi Souza', dob: '1997-01-19', city: 'São Paulo', avatar: 'https://picsum.photos/id/21/200/200', email: 'davi@example.com' }, interest_message: 'Interesse em sua habilidade em React Native', status: 'pending', created_at: new Date().toISOString() },
+  { id: "conn-3", sender_id: "13", receiver_id: "1", user: { id: "13", name: 'João Silva', dob: '1995-03-29', city: 'Belo Horizonte', avatar: 'https://picsum.photos/id/23/200/200', email: 'joao@example.com' }, interest_message: 'Interesse em sua habilidade em DevOps', status: 'pending', created_at: new Date().toISOString() },
+  { id: "conn-4", sender_id: "14", receiver_id: "1", user: { id: "14", name: 'Maria', dob: '2000-02-20', city: 'Cascavel', avatar: 'https://picsum.photos/id/1011/200/200', email: 'maria2@example.com' }, interest_message: 'Interesse em sua habilidade edição de vídeo', status: 'pending', created_at: new Date().toISOString() },
+  { id: "conn-5", sender_id: "15", receiver_id: "1", user: { id: "15", name: 'Silvio Abreu', dob: '1989-04-04', city: 'Brasília', avatar: 'https://picsum.photos/id/25/200/200', email: 'silvio@example.com' }, interest_message: 'Interesse em suas habilidades em Inteligência Artificial e DevOps', status: 'pending', created_at: new Date().toISOString() },
+  { id: "conn-6", sender_id: "16", receiver_id: "1", user: { id: "16", name: 'Silvio Abreu', dob: '1989-04-04', city: 'Brasília', avatar: 'https://picsum.photos/id/25/200/200', email: 'silvio2@example.com' }, interest_message: 'Interesse em suas habilidades em Cloud', status: 'pending', created_at: new Date().toISOString() },
 ];
 
 export const MOCK_CHAT_MESSAGES: Message[] = [
-    { id: 1, text: 'Olá, bom dia tudo bem ?', time: '08:29', senderId: 10, avatar: MOCK_USERS[9].avatar },
-    { id: 2, text: 'Olá, bom dia, tudo bem sim e com você?', time: '08:29', senderId: 1, avatar: MOCK_USERS[0].avatar },
-    { id: 3, text: 'Estive analisando seu perfil e percebi algumas habilidades que se alinham perfeitamente com os requisitos da nossa vaga de estágio.', time: '08:30', senderId: 10, avatar: MOCK_USERS[9].avatar },
-    { id: 4, text: 'Agradeço o contato e o interesse! Fiquei muito feliz em saber disso. Adoraria a oportunidade de saber mais detalhes sobre a vaga e a empresa.', time: '08:31', senderId: 1, avatar: MOCK_USERS[0].avatar },
-    { id: 5, text: 'Perfeito, Jefferson! A oportunidade é para atuar no desenvolvimento de novas features do nosso app. Podemos marcar uma breve conversa de 30 minutos para alinharmos os detalhes. Você tem um horário livre amanhã ou quarta?', time: '08:32', senderId: 10, avatar: MOCK_USERS[9].avatar },
-    { id: 6, text: 'Parece ótimo. Sim, podemos conversar. Tenho disponível na terça-feira às 14h ou na quinta pela manhã. Aguardo o convite com o link da chamada. Obrigado.', time: '08:33', senderId: 1, avatar: MOCK_USERS[0].avatar }
+    { id: "msg-1", text: 'Olá, bom dia tudo bem ?', time: '08:29', senderId: "10", avatar: MOCK_USERS[9].avatar },
+    { id: "msg-2", text: 'Olá, bom dia, tudo bem sim e com você?', time: '08:29', senderId: "1", avatar: MOCK_USERS[0].avatar },
+    { id: "msg-3", text: 'Estive analisando seu perfil e percebi algumas habilidades que se alinham perfeitamente com os requisitos da nossa vaga de estágio.', time: '08:30', senderId: "10", avatar: MOCK_USERS[9].avatar },
+    { id: "msg-4", text: 'Agradeço o contato e o interesse! Fiquei muito feliz em saber disso. Adoraria a oportunidade de saber mais detalhes sobre a vaga e a empresa.', time: '08:31', senderId: "1", avatar: MOCK_USERS[0].avatar },
+    { id: "msg-5", text: 'Perfeito, Jefferson! A oportunidade é para atuar no desenvolvimento de novas features do nosso app. Podemos marcar uma breve conversa de 30 minutos para alinharmos os detalhes. Você tem um horário livre amanhã ou quarta?', time: '08:32', senderId: "10", avatar: MOCK_USERS[9].avatar },
+    { id: "msg-6", text: 'Parece ótimo. Sim, podemos conversar. Tenho disponível na terça-feira às 14h ou na quinta pela manhã. Aguardo o convite com o link da chamada. Obrigado.', time: '08:33', senderId: "1", avatar: MOCK_USERS[0].avatar }
 ];
 
 export const icons = {

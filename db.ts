@@ -1,5 +1,5 @@
 import { MOCK_USERS, MOCK_CONNECTIONS, MOCK_CHAT_MESSAGES } from './constants';
-import { User, ConnectionRequest, Message, ChatThread } from './types';
+import { User, ConnectionRequest, Message, ChatThread } from './types'; // Importando tipos atualizados
 
 const DB_KEY = 'indicai_db';
 
@@ -7,7 +7,7 @@ interface AppDB {
     users: User[];
     connections: ConnectionRequest[];
     chats: ChatThread[];
-    currentUserId: number | null; // This will be managed by Supabase Auth now
+    currentUserId: string | null; // Alterado para string | null
 }
 
 // In-memory cache to act as a single source of truth after initialization.
@@ -18,8 +18,8 @@ const createInitialDB = (): AppDB => ({
     connections: [...MOCK_CONNECTIONS],
     chats: [
         {
-            id: 1,
-            contact: MOCK_USERS.find(u => u.id === 10)!,
+            id: "chat-1", // ID de chat mockado como string
+            contact: MOCK_USERS.find(u => u.id === "10")!, // ID do usuário mockado como string
             messages: [...MOCK_CHAT_MESSAGES],
         },
     ],
@@ -89,7 +89,7 @@ export const db = {
     // updateUser is now handled by Supabase in App.tsx
     
     // Keep these for now as they interact with local mock data
-    handleConnection: (connectionId: number, action: 'accept' | 'reject') => {
+    handleConnection: (connectionId: string, action: 'accept' | 'reject') => { // connectionId como string
         const state = readDB();
         const connection = state.connections.find(c => c.id === connectionId);
 
@@ -97,7 +97,7 @@ export const db = {
              const chatExists = state.chats.some(c => c.contact.id === connection.user.id);
              if (!chatExists) {
                  state.chats.push({
-                     id: Date.now(),
+                     id: Date.now().toString(), // ID de chat como string
                      contact: connection.user,
                      messages: []
                  });
@@ -108,7 +108,7 @@ export const db = {
         writeDB(state);
     },
 
-    addMessage: (chatPartnerId: number, message: Message) => {
+    addMessage: (chatPartnerId: string, message: Message) => { // chatPartnerId como string
         const state = readDB();
         const chat = state.chats.find(c => c.contact.id === chatPartnerId);
 
@@ -118,7 +118,7 @@ export const db = {
              const partner = state.users.find(u => u.id === chatPartnerId);
              if (partner) {
                  state.chats.push({
-                     id: Date.now(),
+                     id: Date.now().toString(), // ID de chat como string
                      contact: partner,
                      messages: [message],
                  });

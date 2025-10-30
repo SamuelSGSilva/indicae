@@ -7,7 +7,7 @@ interface ChatScreenProps {
   messages: Message[];
   onBack: () => void;
   onSendMessage: (text: string) => void;
-  currentUserId: number;
+  currentUserId: string; // Alterado para string
 }
 
 const ChatMessageBubble: React.FC<{ message: Message, isSender: boolean }> = ({ message, isSender }) => {

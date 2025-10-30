@@ -4,7 +4,7 @@ import { icons } from '../constants';
 
 interface ConnectionsScreenProps {
   connections: ConnectionRequest[];
-  onConnectionAction: (connectionId: number, action: 'accept' | 'reject') => void;
+  onConnectionAction: (connectionId: string, action: 'accept' | 'reject') => void; // Corrigido para string
   onUserClick: (user: User) => void;
   onBack: () => void;
 }
@@ -18,7 +18,7 @@ const ConnectionRequestCard: React.FC<{ request: ConnectionRequest, onAccept: ()
                 <p className="text-xs text-gray-400">Solicitou uma conexão</p>
             </div>
         </div>
-        <p className="text-sm text-gray-300 mb-4">"{request.interest}"</p>
+        <p className="text-sm text-gray-300 mb-4">"{request.interest_message}"</p> {/* Alterado para interest_message */}
         <div className="flex justify-end gap-2">
             <button onClick={onAccept} className="bg-green-600 text-white text-sm font-bold py-2 px-6 rounded-lg hover:bg-green-700 transition-colors">Aceitar</button>
             <button onClick={onReject} className="bg-red-600 text-white text-sm font-bold py-2 px-6 rounded-lg hover:bg-red-700 transition-colors">Recusar</button>
