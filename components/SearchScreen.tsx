@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { User, Screen } from '../types';
+import { User } from '../types';
 import { icons, calculateAge } from '../constants';
 
 interface SearchScreenProps {
   users: User[];
-  onUserClick: (user: User) => void; // Alterado para onUserClick que leva para o perfil
+  onUserClick: (user: User) => void;
   onBack: () => void;
-  onNavigate: (screen: Screen) => void;
 }
 
 const UserCard: React.FC<{ user: User, onClick: () => void }> = ({ user, onClick }) => (
@@ -14,11 +13,11 @@ const UserCard: React.FC<{ user: User, onClick: () => void }> = ({ user, onClick
         <img className="w-20 h-20 rounded-full object-cover mb-2" src={user.avatar} alt={user.name} />
         <p className="font-bold text-white">{user.name}</p>
         <p className="text-sm text-gray-400">{calculateAge(user.dob)}</p>
-        <p className="text-xs text-gray-400">{user.city}</p> {/* Removido user.state */}
+        <p className="text-xs text-gray-400">{user.city}-{user.state}</p>
     </div>
 )
 
-const SearchScreen: React.FC<SearchScreenProps> = ({ users, onUserClick, onBack, onNavigate }) => {
+const SearchScreen: React.FC<SearchScreenProps> = ({ users, onUserClick, onBack }) => {
   const [query, setQuery] = useState('');
 
   const filteredUsers = users.filter(user => 
@@ -29,21 +28,21 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ users, onUserClick, onBack,
   );
   
   return (
-    <div className="w-full bg-[#0B1526]">
+    <div className="w-full min-h-full bg-[#0B1526]">
       <header className="p-4 flex justify-between items-center">
         <div className="w-6 h-6" />
-        <h1 className="text-xl font-bold text-white">Indicae</h1>
+        <h1 className="text-xl font-bold text-white">Buscar Conexões</h1>
         <button className="flex flex-col items-center text-white">
           {icons.search('w-6 h-6')}
-          <span className="text-xs">Indicae</span>
+          <span className="text-xs">Indicai</span>
         </button>
       </header>
       
       <div className="px-4">
-        <div className="relative mb-4">
+        <div className="relative">
           <input 
             type="text" 
-            placeholder="Pesquise por nome, cidade ou skill..." // Alterado placeholder
+            placeholder="Pesquise por especialidade" 
             className="w-full bg-white text-gray-800 rounded-full py-3 pl-12 pr-4 focus:outline-none"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -52,12 +51,6 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ users, onUserClick, onBack,
             {icons.search('w-6 h-6')}
           </div>
         </div>
-        <button 
-          onClick={() => onNavigate(Screen.SkillSearch)} 
-          className="w-full bg-teal-600 text-white font-bold py-3 px-12 rounded-lg hover:bg-teal-700 transition-colors mb-4"
-        >
-          Buscar por Skill
-        </button>
         <div className="flex justify-between items-center mt-4 text-sm">
             <p>Local: Foz do Iguaçu</p>
             <p>Idade: 18-30</p>

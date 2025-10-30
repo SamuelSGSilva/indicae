@@ -38,7 +38,7 @@ const FeedbackScreen: React.FC<FeedbackScreenProps> = ({ onBack, onSubmit }) => 
     <div className="w-full h-full flex flex-col bg-[#0B1526]">
       <header className="p-4 flex justify-between items-center flex-shrink-0">
         <button onClick={onBack} className="text-white">{icons.back('w-6 h-6')}</button>
-        <h1 className="text-xl font-bold text-white">Indicae</h1>
+        <h1 className="text-xl font-bold text-white">Feedback e Avaliação</h1>
         <div className="w-6 h-6"></div>
       </header>
 

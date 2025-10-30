@@ -21,7 +21,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onNavigateToRegister
   return (
     <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-[#0B1526]">
       <div className="w-full max-w-xs text-center">
-        <h1 className="text-5xl font-bold text-white mb-2">Indicae</h1>
+        <h1 className="text-5xl font-bold text-white mb-2">Indicai</h1>
         <p className="text-gray-400 mb-10">Conectando talentos.</p>
 
         <form onSubmit={handleLoginClick} className="space-y-4">

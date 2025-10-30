@@ -5,14 +5,10 @@ export enum Screen {
   Profile = 'Perfil',
   Chat = 'Chat',
   CreateProfile = 'CreateProfile',
-  SkillSearch = 'SkillSearch',
-  Initial = 'Initial',
-  Home = 'Home', // Nova tela inicial pós-login
-  OtherUserProfile = 'OtherUserProfile', // Nova tela para perfis de outros usuários
 }
 
 export interface User {
-  id: string; // Alterado de number para string
+  id: number;
   name: string;
   dob: string;
   city: string;
@@ -26,25 +22,21 @@ export interface User {
 }
 
 export interface ConnectionRequest {
-  id: string; // Alterado de number para string
-  sender_id: string; // ID do usuário que enviou a solicitação
-  receiver_id: string; // ID do usuário que recebeu a solicitação
-  user: User; // O usuário que enviou a solicitação (para a tela de conexões do receptor)
-  interest_message: string; // Mensagem de interesse
-  status: 'pending' | 'accepted' | 'rejected'; // Status da solicitação
-  created_at: string;
+  id: number;
+  user: User;
+  interest: string;
 }
 
 export interface Message {
-  id: string; // Alterado de number para string
+  id: number;
   text: string;
   time: string;
-  senderId: string; // Alterado de number para string
+  senderId: number;
   avatar: string;
 }
 
 export interface ChatThread {
-    id: string; // Alterado de number para string
+    id: number;
     contact: User;
     messages: Message[];
 }
