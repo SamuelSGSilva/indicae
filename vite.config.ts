@@ -16,10 +16,11 @@ export default defineConfig(({ mode }) => {
         'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL),
         'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY),
       },
-      resolve: {
-        alias: {
-          '@': path.resolve(__dirname, '.'),
-        }
-      }
+      // Removendo o alias de caminho para evitar possíveis conflitos com lazy imports
+      // resolve: {
+      //   alias: {
+      //     '@': path.resolve(__dirname, '.'),
+      //   }
+      // }
     };
 });
