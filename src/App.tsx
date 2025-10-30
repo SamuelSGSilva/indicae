@@ -1,18 +1,20 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { Screen, User, ConnectionRequest, Message, ChatThread } from '../types';
 import { db } from '../db';
 import BottomNav from '../components/BottomNav';
-import UserProfileScreen from '../components/UserProfileScreen';
-import SearchScreen from '../components/SearchScreen';
-import ConnectionsScreen from '../components/ConnectionsScreen';
-import MessagesScreen from '../components/MessagesScreen';
-import ChatScreen from '../components/ChatScreen';
-import CreateProfileScreen from '../components/CreateProfileScreen';
-import LoginScreen from '../components/LoginScreen';
-import RegistrationScreen from '../components/RegistrationScreen';
-import SkillSearchScreen from './components/SkillSearchScreen';
-import InitialScreen from './pages/InitialScreen';
-import HomeScreen from './pages/HomeScreen';
+// Importações lazy para os componentes de tela
+const UserProfileScreen = lazy(() => import('../components/UserProfileScreen'));
+const SearchScreen = lazy(() => import('../components/SearchScreen'));
+const ConnectionsScreen = lazy(() => import('../components/ConnectionsScreen'));
+const MessagesScreen = lazy(() => import('../components/MessagesScreen'));
+const ChatScreen = lazy(() => import('../components/ChatScreen'));
+const CreateProfileScreen = lazy(() => import('../components/CreateProfileScreen'));
+const LoginScreen = lazy(() => import('../components/LoginScreen'));
+const RegistrationScreen = lazy(() => import('../components/RegistrationScreen'));
+const SkillSearchScreen = lazy(() => import('./components/SkillSearchScreen'));
+const InitialScreen = lazy(() => import('./pages/InitialScreen'));
+const HomeScreen = lazy(() => import('./pages/HomeScreen'));
+
 import ToastProvider from './components/ToastProvider';
 import { supabase } from './integrations/supabase/client';
 import toast from 'react-hot-toast';
@@ -405,7 +407,9 @@ const App: React.FC = () => {
       return (
           <>
             <div className={`flex-1 overflow-y-auto ${!isNavVisible ? '' : 'pb-20'}`}>
-              {renderScreen()}
+              <Suspense fallback={<div className="flex-1 flex items-center justify-center"><p className="text-white">Carregando tela...</p></div>}>
+                {renderScreen()}
+              </Suspense>
             </div>
             {isNavVisible && <BottomNav activeScreen={activeScreen} onNavigate={(s) => setHistory([s])} />}
           </>
