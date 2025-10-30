@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
-import { Screen, User, ConnectionRequest, Message, ChatThread } from './types'; // Caminho atualizado
-import { db } from '../db'; // Caminho corrigido
-import BottomNav from './components/BottomNav'; // Caminho atualizado
+import { Screen, User, ConnectionRequest, Message, ChatThread } from './types';
+import { db } from './db'; // Caminho atualizado
+import BottomNav from './components/BottomNav';
 // Importações lazy para os componentes de tela
-const UserProfileScreen = lazy(() => import('./components/UserProfileScreen')); // Caminho atualizado
-const SearchScreen = lazy(() => import('./components/SearchScreen')); // Caminho atualizado
-const ConnectionsScreen = lazy(() => import('./components/ConnectionsScreen')); // Caminho atualizado
-const MessagesScreen = lazy(() => import('./components/MessagesScreen')); // Caminho atualizado
-const ChatScreen = lazy(() => import('./components/ChatScreen')); // Caminho atualizado
-const CreateProfileScreen = lazy(() => import('./components/CreateProfileScreen')); // Caminho atualizado
-const LoginScreen = lazy(() => import('./components/LoginScreen')); // Caminho atualizado
-const RegistrationScreen = lazy(() => import('./components/RegistrationScreen')); // Caminho atualizado
+const UserProfileScreen = lazy(() => import('./components/UserProfileScreen'));
+const SearchScreen = lazy(() => import('./components/SearchScreen'));
+const ConnectionsScreen = lazy(() => import('./components/ConnectionsScreen'));
+const MessagesScreen = lazy(() => import('./components/MessagesScreen'));
+const ChatScreen = lazy(() => import('./components/ChatScreen'));
+const CreateProfileScreen = lazy(() => import('./components/CreateProfileScreen'));
+const LoginScreen = lazy(() => import('./components/LoginScreen'));
+const RegistrationScreen = lazy(() => import('./components/RegistrationScreen'));
 const SkillSearchScreen = lazy(() => import('./components/SkillSearchScreen'));
 const InitialScreen = lazy(() => import('./pages/InitialScreen'));
-const HomeScreen = lazy(() => import('./pages/HomeScreen.tsx'));
-const OtherUserProfileScreen = lazy(() => import('./components/OtherUserProfileScreen')); // Caminho atualizado
+const HomeScreen = lazy(() => import('@/src/pages/HomeScreen.tsx'));
+const OtherUserProfileScreen = lazy(() => import('./components/OtherUserProfileScreen')); // Novo lazy import
 
 import ToastProvider from './components/ToastProvider';
 import { supabase } from './integrations/supabase/client';
