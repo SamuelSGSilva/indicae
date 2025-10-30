@@ -13,7 +13,7 @@ const LoginScreen = lazy(() => import('./components/LoginScreen'));
 const RegistrationScreen = lazy(() => import('./components/RegistrationScreen'));
 const SkillSearchScreen = lazy(() => import('./components/SkillSearchScreen'));
 const InitialScreen = lazy(() => import('./pages/InitialScreen'));
-const HomeScreen = lazy(() => import('./pages/HomeScreen')); // Caminho corrigido para relativo
+const HomeScreen = lazy(() => import('./pages/HomeScreen'));
 const OtherUserProfileScreen = lazy(() => import('./components/OtherUserProfileScreen'));
 
 import ToastProvider from './components/ToastProvider';
@@ -75,7 +75,7 @@ const App: React.FC = () => {
         status,
         interest_message,
         created_at,
-        profiles!connection_requests_sender_id_fkey(
+        sender_profile:profiles( // Alias para o perfil do remetente
           id,
           first_name,
           last_name,
@@ -97,7 +97,7 @@ const App: React.FC = () => {
     }
 
     const mappedIncomingRequests: ConnectionRequest[] = incomingRequests.map((req: any) => {
-      const senderProfile = req.profiles;
+      const senderProfile = req.sender_profile; // Usando o alias
       return {
         id: req.id,
         sender_id: req.sender_id,
@@ -130,7 +130,7 @@ const App: React.FC = () => {
         status,
         interest_message,
         created_at,
-        profiles!connection_requests_receiver_id_fkey(
+        receiver_profile:profiles( // Alias para o perfil do destinatário
           id,
           first_name,
           last_name,
@@ -151,7 +151,7 @@ const App: React.FC = () => {
       return;
     }
     const mappedSentRequests: ConnectionRequest[] = sentRequests.map((req: any) => {
-        const receiverProfile = req.profiles;
+        const receiverProfile = req.receiver_profile; // Usando o alias
         return {
             id: req.id,
             sender_id: req.sender_id,
@@ -184,10 +184,10 @@ const App: React.FC = () => {
         status,
         interest_message,
         created_at,
-        profiles!connection_requests_sender_id_fkey(
+        sender_profile:profiles(
           id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills
         ),
-        profiles!connection_requests_receiver_id_fkey(
+        receiver_profile:profiles(
           id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills
         )
       `)
@@ -201,7 +201,7 @@ const App: React.FC = () => {
     }
 
     const mappedAcceptedConns: ConnectionRequest[] = acceptedConns.map((req: any) => {
-        const otherProfile = req.sender_id === userId ? req.profiles_connection_requests_receiver_id_fkey : req.profiles_connection_requests_sender_id_fkey;
+        const otherProfile = req.sender_id === userId ? req.receiver_profile : req.sender_profile; // Usando os aliases
         return {
             id: req.id,
             sender_id: req.sender_id,
