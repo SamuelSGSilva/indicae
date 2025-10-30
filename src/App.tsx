@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { Screen, User, ConnectionRequest, Message, ChatThread } from './types';
-import { db } from './db'; // Caminho atualizado
+import { db } from './db';
 import BottomNav from './components/BottomNav';
 // Importações lazy para os componentes de tela
 const UserProfileScreen = lazy(() => import('./components/UserProfileScreen'));
@@ -13,8 +13,8 @@ const LoginScreen = lazy(() => import('./components/LoginScreen'));
 const RegistrationScreen = lazy(() => import('./components/RegistrationScreen'));
 const SkillSearchScreen = lazy(() => import('./components/SkillSearchScreen'));
 const InitialScreen = lazy(() => import('./pages/InitialScreen'));
-const HomeScreen = lazy(() => import('@/src/pages/HomeScreen.tsx'));
-const OtherUserProfileScreen = lazy(() => import('./components/OtherUserProfileScreen')); // Novo lazy import
+const HomeScreen = lazy(() => import('./pages/HomeScreen')); // Caminho corrigido para relativo
+const OtherUserProfileScreen = lazy(() => import('./components/OtherUserProfileScreen'));
 
 import ToastProvider from './components/ToastProvider';
 import { supabase } from './integrations/supabase/client';
@@ -25,15 +25,15 @@ const App: React.FC = () => {
   const [authFlowScreen, setAuthFlowScreen] = useState<'initial' | 'login' | 'register'>('initial');
   const [history, setHistory] = useState<Screen[]>([Screen.Initial]);
   const activeScreen = history[history.length - 1];
-  const [viewingOtherUser, setViewingOtherUser] = useState<User | null>(null); // Para o perfil de outro usuário
+  const [viewingOtherUser, setViewingOtherUser] = useState<User | null>(null);
   const [chattingWith, setChattingWith] = useState<User | null>(null);
 
   // App-wide state from our DB (will be partially migrated to Supabase)
-  const [users, setUsers] = useState<User[]>([]); // Now populated from Supabase
+  const [users, setUsers] = useState<User[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [connections, setConnections] = useState<ConnectionRequest[]>([]); // Now managed by Supabase (incoming pending)
-  const [sentConnectionRequests, setSentConnectionRequests] = useState<ConnectionRequest[]>([]); // Para rastrear solicitações enviadas
-  const [acceptedConnections, setAcceptedConnections] = useState<ConnectionRequest[]>([]); // Para rastrear conexões aceitas
+  const [connections, setConnections] = useState<ConnectionRequest[]>([]);
+  const [sentConnectionRequests, setSentConnectionRequests] = useState<ConnectionRequest[]>([]);
+  const [acceptedConnections, setAcceptedConnections] = useState<ConnectionRequest[]>([]);
   const [chats, setChats] = useState<ChatThread[]>([]);
 
   // Function to fetch all user profiles from Supabase
@@ -159,7 +159,7 @@ const App: React.FC = () => {
             status: req.status,
             interest_message: req.interest_message,
             created_at: req.created_at,
-            user: { // Map receiver profile to User type
+            user: {
                 id: receiverProfile.id,
                 name: `${receiverProfile.first_name || ''} ${receiverProfile.last_name || ''}`.trim(),
                 avatar: receiverProfile.avatar_url || `https://picsum.photos/seed/${receiverProfile.id}/200/200`,
@@ -262,8 +262,8 @@ const App: React.FC = () => {
           setIsAuthenticated(true);
           setHistory([Screen.Home]);
           toast.success(`Bem-vindo(a), ${user.name}!`);
-          fetchConnections(user.id); // Fetch connections for the current user
-          fetchAllUsers(); // Fetch all users for search
+          fetchConnections(user.id);
+          fetchAllUsers();
         } else {
           console.warn('Supabase user authenticated but no profile found.');
           setIsAuthenticated(true);
@@ -274,8 +274,8 @@ const App: React.FC = () => {
           });
           setHistory([Screen.Home]);
           toast.warn('Seu perfil está incompleto. Por favor, edite-o.');
-          fetchConnections(session.user.id); // Still try to fetch connections
-          fetchAllUsers(); // Fetch all users for search
+          fetchConnections(session.user.id);
+          fetchAllUsers();
         }
       } else {
         setIsAuthenticated(false);
@@ -283,14 +283,13 @@ const App: React.FC = () => {
         setAuthFlowScreen('initial');
         setHistory([Screen.Initial]);
         toast.dismiss();
-        setConnections([]); // Clear connections on logout
-        setUsers([]); // Clear users on logout
+        setConnections([]);
+        setUsers([]);
         setSentConnectionRequests([]);
         setAcceptedConnections([]);
       }
     });
 
-    // Load mock data for chats (these are not yet fully in Supabase)
     const data = db.initialize();
     setChats(data.chats);
 
@@ -300,7 +299,7 @@ const App: React.FC = () => {
   }, [fetchConnections, fetchAllUsers]);
 
   const handleNavigate = (screen: Screen) => {
-    setViewingOtherUser(null); // Limpa o usuário sendo visualizado ao navegar
+    setViewingOtherUser(null);
     setChattingWith(null);
     setHistory(prev => [...prev, screen]);
   };
@@ -320,14 +319,13 @@ const App: React.FC = () => {
   }
   
   const handleBack = () => {
-    setViewingOtherUser(null); // Limpa o usuário sendo visualizado ao voltar
+    setViewingOtherUser(null);
     setChattingWith(null);
     if (history.length > 1) {
       setHistory(prev => prev.slice(0, -1));
     }
   }
   
-  // Data modification handlers
   const handleSaveProfile = async (updatedUser: User) => {
       if (!currentUser) {
         toast.error('Usuário atual não encontrado para salvar o perfil.');
@@ -357,7 +355,7 @@ const App: React.FC = () => {
           setCurrentUser(updatedUser);
           toast.success('Perfil salvo com sucesso!');
           handleBack();
-          fetchAllUsers(); // Refresh all users after profile update
+          fetchAllUsers();
         }
       } catch (e: any) {
         console.error('Unexpected error during profile update:', e);
@@ -376,7 +374,6 @@ const App: React.FC = () => {
       return;
     }
 
-    // Check if a pending request already exists
     const existingRequest = sentConnectionRequests.find(req => req.receiver_id === receiverId && req.status === 'pending');
     if (existingRequest) {
         toast.warn('Você já enviou uma solicitação de conexão para este usuário.');
@@ -401,16 +398,15 @@ const App: React.FC = () => {
       } else {
         toast.success('Solicitação de conexão enviada com sucesso!');
         if (data) {
-            // Add the newly sent request to the state
             const receiverUser = users.find(u => u.id === receiverId);
             if (receiverUser) {
                 setSentConnectionRequests(prev => [...prev, {
                     ...data,
-                    user: receiverUser // Attach the receiver's user object for display if needed
+                    user: receiverUser
                 }]);
             }
         }
-        handleBack(); // Go back to the previous screen
+        handleBack();
       }
     } catch (e: any) {
       console.error('Unexpected error during sending connection request:', e);
@@ -433,7 +429,7 @@ const App: React.FC = () => {
           toast.error(`Erro ao ${action === 'accept' ? 'aceitar' : 'recusar'} conexão.`);
         } else {
           toast.success(`Conexão ${action === 'accept' ? 'aceita' : 'recusada'} com sucesso!`);
-          fetchConnections(currentUser.id); // Re-fetch connections to update the UI
+          fetchConnections(currentUser.id);
 
           if (action === 'accept') {
             const acceptedConnection = connections.find(c => c.id === connectionId);
@@ -477,7 +473,6 @@ const App: React.FC = () => {
       });
   };
 
-  // Auth Handlers
   const handleLogin = async (email: string, password?: string) => {
     if (!password) {
       toast.error('Por favor, insira a senha.');
