@@ -8,6 +8,7 @@ export enum Screen {
   SkillSearch = 'SkillSearch',
   Initial = 'Initial',
   Home = 'Home', // Nova tela inicial pós-login
+  OtherUserProfile = 'OtherUserProfile', // Nova tela para perfis de outros usuários
 }
 
 export interface User {

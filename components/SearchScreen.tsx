@@ -4,9 +4,9 @@ import { icons, calculateAge } from '../constants';
 
 interface SearchScreenProps {
   users: User[];
-  onUserClick: (user: User) => void;
+  onUserClick: (user: User) => void; // Alterado para onUserClick que leva para o perfil
   onBack: () => void;
-  onNavigate: (screen: Screen) => void; // Adicionado onNavigate prop
+  onNavigate: (screen: Screen) => void;
 }
 
 const UserCard: React.FC<{ user: User, onClick: () => void }> = ({ user, onClick }) => (
@@ -14,7 +14,7 @@ const UserCard: React.FC<{ user: User, onClick: () => void }> = ({ user, onClick
         <img className="w-20 h-20 rounded-full object-cover mb-2" src={user.avatar} alt={user.name} />
         <p className="font-bold text-white">{user.name}</p>
         <p className="text-sm text-gray-400">{calculateAge(user.dob)}</p>
-        <p className="text-xs text-gray-400">{user.city}-{user.state}</p>
+        <p className="text-xs text-gray-400">{user.city}</p> {/* Removido user.state */}
     </div>
 )
 
@@ -40,10 +40,10 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ users, onUserClick, onBack,
       </header>
       
       <div className="px-4">
-        <div className="relative mb-4"> {/* Adicionado mb-4 para espaçamento */}
+        <div className="relative mb-4">
           <input 
             type="text" 
-            placeholder="Pesquise por nome ou cidade..." // Alterado placeholder
+            placeholder="Pesquise por nome, cidade ou skill..." // Alterado placeholder
             className="w-full bg-white text-gray-800 rounded-full py-3 pl-12 pr-4 focus:outline-none"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -52,7 +52,6 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ users, onUserClick, onBack,
             {icons.search('w-6 h-6')}
           </div>
         </div>
-        {/* Novo botão para navegar para SkillSearchScreen */}
         <button 
           onClick={() => onNavigate(Screen.SkillSearch)} 
           className="w-full bg-teal-600 text-white font-bold py-3 px-12 rounded-lg hover:bg-teal-700 transition-colors mb-4"

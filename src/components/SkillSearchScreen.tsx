@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { User, Screen } from '../types';
-import { icons, ALL_HARD_SKILLS, ALL_SOFT_SKILLS, calculateAge } from '../../constants'; // Caminho corrigido
+import { icons, ALL_HARD_SKILLS, ALL_SOFT_SKILLS, calculateAge } from '../../constants';
 
 interface SkillSearchScreenProps {
   allUsers: User[]; // Todos os usuários para pesquisar
-  onUserClick: (user: User) => void;
+  onUserClick: (user: User) => void; // Alterado para onUserClick que leva para o perfil
   onBack: () => void;
 }
 
@@ -13,7 +13,7 @@ const UserCard: React.FC<{ user: User, onClick: () => void }> = ({ user, onClick
         <img className="w-20 h-20 rounded-full object-cover mb-2" src={user.avatar} alt={user.name} />
         <p className="font-bold text-white">{user.name}</p>
         <p className="text-sm text-gray-400">{calculateAge(user.dob)}</p>
-        <p className="text-xs text-gray-400">{user.city}-{user.state}</p>
+        <p className="text-xs text-gray-400">{user.city}</p> {/* Removido user.state */}
     </div>
 );
 

@@ -14,6 +14,7 @@ const RegistrationScreen = lazy(() => import('../components/RegistrationScreen')
 const SkillSearchScreen = lazy(() => import('./components/SkillSearchScreen'));
 const InitialScreen = lazy(() => import('./pages/InitialScreen'));
 const HomeScreen = lazy(() => import('./pages/HomeScreen'));
+const OtherUserProfileScreen = lazy(() => import('./components/OtherUserProfileScreen')); // Novo lazy import
 
 import ToastProvider from './components/ToastProvider';
 import { supabase } from './integrations/supabase/client';
@@ -24,19 +25,22 @@ const App: React.FC = () => {
   const [authFlowScreen, setAuthFlowScreen] = useState<'initial' | 'login' | 'register'>('initial');
   const [history, setHistory] = useState<Screen[]>([Screen.Initial]);
   const activeScreen = history[history.length - 1];
+  const [viewingOtherUser, setViewingOtherUser] = useState<User | null>(null); // Para o perfil de outro usuário
   const [chattingWith, setChattingWith] = useState<User | null>(null);
 
   // App-wide state from our DB (will be partially migrated to Supabase)
   const [users, setUsers] = useState<User[]>([]); // Now populated from Supabase
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [connections, setConnections] = useState<ConnectionRequest[]>([]); // Now managed by Supabase
+  const [sentConnectionRequests, setSentConnectionRequests] = useState<ConnectionRequest[]>([]); // Para rastrear solicitações enviadas
+  const [acceptedConnections, setAcceptedConnections] = useState<ConnectionRequest[]>([]); // Para rastrear conexões aceitas
   const [chats, setChats] = useState<ChatThread[]>([]);
 
   // Function to fetch all user profiles from Supabase
   const fetchAllUsers = useCallback(async () => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills'); // Otimizado: selecionar apenas colunas necessárias
+      .select('id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills');
 
     if (error) {
       console.error('Error fetching all user profiles:', error);
@@ -53,8 +57,7 @@ const App: React.FC = () => {
       education: profile.education || '',
       softSkills: profile.soft_skills || [],
       hardSkills: profile.hard_skills || [],
-      email: '', // Email is not directly available from profiles table in this query
-      // state is not available in Supabase profiles table, so it will be undefined
+      email: '',
     }));
     setUsers(fetchedUsers);
     return fetchedUsers;
@@ -62,7 +65,8 @@ const App: React.FC = () => {
 
   // Function to fetch connection requests from Supabase
   const fetchConnections = useCallback(async (userId: string) => {
-    const { data, error } = await supabase
+    // Fetch incoming pending requests
+    const { data: incomingRequests, error: incomingError } = await supabase
       .from('connection_requests')
       .select(`
         id,
@@ -86,13 +90,13 @@ const App: React.FC = () => {
       .eq('receiver_id', userId)
       .eq('status', 'pending');
 
-    if (error) {
-      console.error('Error fetching connection requests:', error);
-      toast.error('Erro ao carregar solicitações de conexão.');
-      return [];
+    if (incomingError) {
+      console.error('Error fetching incoming connection requests:', incomingError);
+      toast.error('Erro ao carregar solicitações de conexão recebidas.');
+      return;
     }
 
-    const fetchedConnections: ConnectionRequest[] = data.map((req: any) => {
+    const mappedIncomingRequests: ConnectionRequest[] = incomingRequests.map((req: any) => {
       const senderProfile = req.profiles;
       return {
         id: req.id,
@@ -101,7 +105,7 @@ const App: React.FC = () => {
         status: req.status,
         interest_message: req.interest_message,
         created_at: req.created_at,
-        user: { // Map sender profile to User type
+        user: {
           id: senderProfile.id,
           name: `${senderProfile.first_name || ''} ${senderProfile.last_name || ''}`.trim(),
           avatar: senderProfile.avatar_url || `https://picsum.photos/seed/${senderProfile.id}/200/200`,
@@ -110,12 +114,116 @@ const App: React.FC = () => {
           education: senderProfile.education || '',
           softSkills: senderProfile.soft_skills || [],
           hardSkills: senderProfile.hard_skills || [],
-          email: '', // Email is not directly available from profiles table in this query
+          email: '',
         },
       };
     });
-    setConnections(fetchedConnections);
-    return fetchedConnections;
+    setConnections(mappedIncomingRequests);
+
+    // Fetch sent pending requests
+    const { data: sentRequests, error: sentError } = await supabase
+      .from('connection_requests')
+      .select(`
+        id,
+        sender_id,
+        receiver_id,
+        status,
+        interest_message,
+        created_at,
+        profiles!connection_requests_receiver_id_fkey(
+          id,
+          first_name,
+          last_name,
+          avatar_url,
+          dob,
+          city,
+          education,
+          soft_skills,
+          hard_skills
+        )
+      `)
+      .eq('sender_id', userId)
+      .eq('status', 'pending');
+
+    if (sentError) {
+      console.error('Error fetching sent connection requests:', sentError);
+      toast.error('Erro ao carregar solicitações de conexão enviadas.');
+      return;
+    }
+    const mappedSentRequests: ConnectionRequest[] = sentRequests.map((req: any) => {
+        const receiverProfile = req.profiles;
+        return {
+            id: req.id,
+            sender_id: req.sender_id,
+            receiver_id: req.receiver_id,
+            status: req.status,
+            interest_message: req.interest_message,
+            created_at: req.created_at,
+            user: { // Map receiver profile to User type
+                id: receiverProfile.id,
+                name: `${receiverProfile.first_name || ''} ${receiverProfile.last_name || ''}`.trim(),
+                avatar: receiverProfile.avatar_url || `https://picsum.photos/seed/${receiverProfile.id}/200/200`,
+                dob: receiverProfile.dob || '',
+                city: receiverProfile.city || '',
+                education: receiverProfile.education || '',
+                softSkills: receiverProfile.soft_skills || [],
+                hardSkills: receiverProfile.hard_skills || [],
+                email: '',
+            },
+        };
+    });
+    setSentConnectionRequests(mappedSentRequests);
+
+    // Fetch accepted connections (where current user is sender or receiver)
+    const { data: acceptedConns, error: acceptedError } = await supabase
+      .from('connection_requests')
+      .select(`
+        id,
+        sender_id,
+        receiver_id,
+        status,
+        interest_message,
+        created_at,
+        profiles!connection_requests_sender_id_fkey(
+          id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills
+        ),
+        profiles!connection_requests_receiver_id_fkey(
+          id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills
+        )
+      `)
+      .eq('status', 'accepted')
+      .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`);
+
+    if (acceptedError) {
+      console.error('Error fetching accepted connections:', acceptedError);
+      toast.error('Erro ao carregar conexões aceitas.');
+      return;
+    }
+
+    const mappedAcceptedConns: ConnectionRequest[] = acceptedConns.map((req: any) => {
+        const otherProfile = req.sender_id === userId ? req.profiles_connection_requests_receiver_id_fkey : req.profiles_connection_requests_sender_id_fkey;
+        return {
+            id: req.id,
+            sender_id: req.sender_id,
+            receiver_id: req.receiver_id,
+            status: req.status,
+            interest_message: req.interest_message,
+            created_at: req.created_at,
+            user: {
+                id: otherProfile.id,
+                name: `${otherProfile.first_name || ''} ${otherProfile.last_name || ''}`.trim(),
+                avatar: otherProfile.avatar_url || `https://picsum.photos/seed/${otherProfile.id}/200/200`,
+                dob: otherProfile.dob || '',
+                city: otherProfile.city || '',
+                education: otherProfile.education || '',
+                softSkills: otherProfile.soft_skills || [],
+                hardSkills: otherProfile.hard_skills || [],
+                email: '',
+            },
+        };
+    });
+    setAcceptedConnections(mappedAcceptedConns);
+
   }, []);
 
   // Initialize DB and check auth state
@@ -124,7 +232,7 @@ const App: React.FC = () => {
       if (session) {
         const { data: profile, error } = await supabase
           .from('profiles')
-          .select('id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills') // Otimizado aqui também
+          .select('id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills')
           .eq('id', session.user.id)
           .single();
 
@@ -177,6 +285,8 @@ const App: React.FC = () => {
         toast.dismiss();
         setConnections([]); // Clear connections on logout
         setUsers([]); // Clear users on logout
+        setSentConnectionRequests([]);
+        setAcceptedConnections([]);
       }
     });
 
@@ -187,11 +297,17 @@ const App: React.FC = () => {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [fetchConnections, fetchAllUsers]); // Add fetchAllUsers to dependency array
+  }, [fetchConnections, fetchAllUsers]);
 
   const handleNavigate = (screen: Screen) => {
+    setViewingOtherUser(null); // Limpa o usuário sendo visualizado ao navegar
     setChattingWith(null);
     setHistory(prev => [...prev, screen]);
+  };
+
+  const handleViewOtherUser = (user: User) => {
+    setViewingOtherUser(user);
+    handleNavigate(Screen.OtherUserProfile);
   };
 
   const handleStartChat = (user: User) => {
@@ -204,6 +320,7 @@ const App: React.FC = () => {
   }
   
   const handleBack = () => {
+    setViewingOtherUser(null); // Limpa o usuário sendo visualizado ao voltar
     setChattingWith(null);
     if (history.length > 1) {
       setHistory(prev => prev.slice(0, -1));
@@ -248,29 +365,86 @@ const App: React.FC = () => {
       }
   };
 
+  const handleSendConnectionRequest = async (receiverId: string, interestMessage: string) => {
+    if (!currentUser) {
+      toast.error('Você precisa estar logado para enviar solicitações de conexão.');
+      return;
+    }
+
+    if (currentUser.id === receiverId) {
+      toast.error('Você não pode enviar uma solicitação de conexão para si mesmo.');
+      return;
+    }
+
+    // Check if a pending request already exists
+    const existingRequest = sentConnectionRequests.find(req => req.receiver_id === receiverId && req.status === 'pending');
+    if (existingRequest) {
+        toast.warn('Você já enviou uma solicitação de conexão para este usuário.');
+        return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('connection_requests')
+        .insert({
+          sender_id: currentUser.id,
+          receiver_id: receiverId,
+          interest_message: interestMessage,
+          status: 'pending',
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error sending connection request:', error);
+        toast.error(`Erro ao enviar solicitação de conexão: ${error.message}`);
+      } else {
+        toast.success('Solicitação de conexão enviada com sucesso!');
+        if (data) {
+            // Add the newly sent request to the state
+            const receiverUser = users.find(u => u.id === receiverId);
+            if (receiverUser) {
+                setSentConnectionRequests(prev => [...prev, {
+                    ...data,
+                    user: receiverUser // Attach the receiver's user object for display if needed
+                }]);
+            }
+        }
+        handleBack(); // Go back to the previous screen
+      }
+    } catch (e: any) {
+      console.error('Unexpected error during sending connection request:', e);
+      toast.error(`Erro inesperado ao enviar solicitação: ${e.message || 'Verifique o console.'}`);
+    }
+  };
+
   const handleConnectionAction = async (connectionId: string, action: 'accept' | 'reject') => {
       if (!currentUser) return;
 
-      const { error } = await supabase
-        .from('connection_requests')
-        .update({ status: action })
-        .eq('id', connectionId)
-        .eq('receiver_id', currentUser.id); // Ensure only the receiver can update
+      try {
+        const { error } = await supabase
+          .from('connection_requests')
+          .update({ status: action })
+          .eq('id', connectionId)
+          .eq('receiver_id', currentUser.id);
 
-      if (error) {
-        console.error(`Error ${action}ing connection:`, error);
-        toast.error(`Erro ao ${action === 'accept' ? 'aceitar' : 'recusar'} conexão.`);
-      } else {
-        toast.success(`Conexão ${action === 'accept' ? 'aceita' : 'recusada'} com sucesso!`);
-        // Re-fetch connections to update the UI
-        fetchConnections(currentUser.id);
+        if (error) {
+          console.error(`Error ${action}ing connection:`, error);
+          toast.error(`Erro ao ${action === 'accept' ? 'aceitar' : 'recusar'} conexão.`);
+        } else {
+          toast.success(`Conexão ${action === 'accept' ? 'aceita' : 'recusada'} com sucesso!`);
+          fetchConnections(currentUser.id); // Re-fetch connections to update the UI
 
-        if (action === 'accept') {
-          const acceptedConnection = connections.find(c => c.id === connectionId);
-          if (acceptedConnection && !chats.some(c => c.contact.id === acceptedConnection.user.id)) {
-            setChats(prev => [...prev, { id: Date.now().toString(), contact: acceptedConnection.user, messages: [] }]);
+          if (action === 'accept') {
+            const acceptedConnection = connections.find(c => c.id === connectionId);
+            if (acceptedConnection && !chats.some(c => c.contact.id === acceptedConnection.user.id)) {
+              setChats(prev => [...prev, { id: Date.now().toString(), contact: acceptedConnection.user, messages: [] }]);
+            }
           }
         }
+      } catch (e: any) {
+        console.error('Unexpected error during connection action:', e);
+        toast.error(`Erro inesperado ao processar conexão: ${e.message || 'Verifique o console.'}`);
       }
   };
   
@@ -372,7 +546,7 @@ const App: React.FC = () => {
       case Screen.Home:
         return currentUser ? <HomeScreen currentUser={currentUser} onNavigate={handleNavigate} /> : <div className="p-4 text-center">Carregando...</div>;
       case Screen.Search:
-        return <SearchScreen users={users.filter(u => u.id !== currentUser?.id)} onUserClick={handleStartChat} onBack={handleBack} onNavigate={handleNavigate} />;
+        return <SearchScreen users={users.filter(u => u.id !== currentUser?.id)} onUserClick={handleViewOtherUser} onBack={handleBack} onNavigate={handleNavigate} />;
       case Screen.Connections:
         return <ConnectionsScreen connections={connections} onConnectionAction={handleConnectionAction} onUserClick={handleStartChat} onBack={handleBack} />;
       case Screen.Messages:
@@ -382,7 +556,21 @@ const App: React.FC = () => {
       case Screen.CreateProfile:
         return currentUser ? <CreateProfileScreen user={currentUser} onBack={handleBack} onSave={handleSaveProfile}/> : <div className="p-4 text-center">Carregando...</div>;
       case Screen.SkillSearch:
-        return <SkillSearchScreen allUsers={users.filter(u => u.id !== currentUser?.id)} onUserClick={handleStartChat} onBack={handleBack} />;
+        return <SkillSearchScreen allUsers={users.filter(u => u.id !== currentUser?.id)} onUserClick={handleViewOtherUser} onBack={handleBack} />;
+      case Screen.OtherUserProfile:
+        if (!viewingOtherUser || !currentUser) return <div className="p-4 text-center">Carregando perfil...</div>;
+        const isPending = sentConnectionRequests.some(req => req.receiver_id === viewingOtherUser.id && req.status === 'pending');
+        const isConnected = acceptedConnections.some(conn => 
+            (conn.sender_id === currentUser.id && conn.receiver_id === viewingOtherUser.id) ||
+            (conn.receiver_id === currentUser.id && conn.sender_id === viewingOtherUser.id)
+        );
+        return <OtherUserProfileScreen 
+                  user={viewingOtherUser} 
+                  onBack={handleBack} 
+                  onSendConnectionRequest={handleSendConnectionRequest}
+                  isConnectionPending={isPending}
+                  isConnected={isConnected}
+               />;
       default:
         return <HomeScreen currentUser={currentUser!} onNavigate={handleNavigate} />;
     }
@@ -402,7 +590,7 @@ const App: React.FC = () => {
           return <RegistrationScreen onRegister={handleRegister} onNavigateToLogin={() => setAuthFlowScreen('login')} />;
       }
 
-      const isNavVisible = ![Screen.Chat, Screen.SkillSearch, Screen.Initial].includes(activeScreen);
+      const isNavVisible = ![Screen.Chat, Screen.SkillSearch, Screen.Initial, Screen.OtherUserProfile].includes(activeScreen);
 
       return (
           <>
