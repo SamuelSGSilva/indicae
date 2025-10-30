@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { icons, ALL_HARD_SKILLS, ALL_SOFT_SKILLS, ALL_CITIES, getColorForSkill } from '../constants';
-import { User } from '../types';
+import { icons, ALL_HARD_SKILLS, ALL_SOFT_SKILLS, ALL_CITIES, getColorForSkill } from '../constants'; // Caminho atualizado
+import { User } from '../types'; // Caminho atualizado
 import SkillModal from './SkillModal';
 import CityModal from './CityModal';
 

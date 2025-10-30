@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { User } from '../types';
-import { icons, calculateAge, getColorForSkill } from '../constants';
+import { User } from '../types'; // Caminho atualizado
+import { icons, calculateAge, getColorForSkill } from '../constants'; // Caminho atualizado
 
 interface OtherUserProfileScreenProps {
   user: User;

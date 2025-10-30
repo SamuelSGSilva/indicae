@@ -1,30 +1,31 @@
 import React, { useState, useMemo } from 'react';
-import { icons } from '../constants';
+import { icons } from '../constants'; // Caminho atualizado
 
-interface SkillModalProps {
+interface CityModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectSkill: (skill: string) => void;
-  availableSkills: string[];
-  currentSkills: string[];
+  onSelectCity: (city: string) => void;
+  availableCities: string[];
   title: string;
 }
 
-const SkillModal: React.FC<SkillModalProps> = ({
+const CityModal: React.FC<CityModalProps> = ({
   isOpen,
   onClose,
-  onSelectSkill,
-  availableSkills,
-  currentSkills,
+  onSelectCity,
+  availableCities,
   title,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredSkills = useMemo(() => {
-    return availableSkills
-      .filter(skill => !currentSkills.includes(skill))
-      .filter(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()));
-  }, [availableSkills, currentSkills, searchTerm]);
+  const filteredCities = useMemo(() => {
+    if (!searchTerm) {
+      return availableCities;
+    }
+    return availableCities.filter(city => 
+      city.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [availableCities, searchTerm]);
 
   if (!isOpen) return null;
 
@@ -42,7 +43,7 @@ const SkillModal: React.FC<SkillModalProps> = ({
         <div className="relative mb-4">
           <input
             type="text"
-            placeholder="Pesquisar skill..."
+            placeholder="Pesquisar cidade..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="w-full bg-gray-700 text-white rounded-full py-2.5 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-teal-500"
@@ -53,17 +54,17 @@ const SkillModal: React.FC<SkillModalProps> = ({
         </div>
         
         <ul className="flex-grow overflow-y-auto space-y-2 pr-2">
-          {filteredSkills.length > 0 ? filteredSkills.map(skill => (
-            <li key={skill}>
+          {filteredCities.length > 0 ? filteredCities.map(city => (
+            <li key={city}>
               <button
-                onClick={() => onSelectSkill(skill)}
+                onClick={() => onSelectCity(city)}
                 className="w-full text-left p-3 bg-gray-800/50 rounded-lg hover:bg-teal-600/50 transition-colors"
               >
-                {skill}
+                {city}
               </button>
             </li>
           )) : (
-            <li className="text-center text-gray-400 p-4">Nenhuma skill encontrada.</li>
+            <li className="text-center text-gray-400 p-4">Nenhuma cidade encontrada.</li>
           )}
         </ul>
       </div>
@@ -71,4 +72,4 @@ const SkillModal: React.FC<SkillModalProps> = ({
   );
 };
 
-export default SkillModal;
+export default CityModal;

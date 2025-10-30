@@ -1,5 +1,5 @@
-import { MOCK_USERS, MOCK_CONNECTIONS, MOCK_CHAT_MESSAGES } from './constants';
-import { User, ConnectionRequest, Message, ChatThread } from './types'; // Importando tipos atualizados
+import { MOCK_USERS, MOCK_CONNECTIONS, MOCK_CHAT_MESSAGES } from './src/constants'; // Caminho atualizado
+import { User, ConnectionRequest, Message, ChatThread } from './src/types'; // Caminho atualizado
 
 const DB_KEY = 'indicai_db';
 

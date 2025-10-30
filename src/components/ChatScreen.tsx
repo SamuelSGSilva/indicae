@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Message } from '../types';
-import { icons } from '../constants';
+import { User, Message } from '../types'; // Caminho atualizado
+import { icons } from '../constants'; // Caminho atualizado
 
 interface ChatScreenProps {
   user: User;

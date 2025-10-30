@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { ConnectionRequest, User } from '../types';
-import { icons } from '../constants';
+import { ConnectionRequest, User } from '../types'; // Caminho atualizado
+import { icons } from '../constants'; // Caminho atualizado
 
 interface ConnectionsScreenProps {
   connections: ConnectionRequest[];

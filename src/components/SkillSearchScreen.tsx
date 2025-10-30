@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { User } from '../types';
-import { icons, calculateAge } from '../constants';
+import { User } from '../types'; // Caminho atualizado
+import { icons, calculateAge } from '../constants'; // Caminho atualizado
 
 interface SkillSearchScreenProps {
   allUsers: User[];

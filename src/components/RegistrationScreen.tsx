@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { User } from '../types';
+import { User } from '../types'; // Caminho atualizado
 import CityModal from './CityModal';
-import { ALL_CITIES } from '../constants';
+import { ALL_CITIES } from '../constants'; // Caminho atualizado
 
 interface RegistrationScreenProps {
   onRegister: (userData: Omit<User, 'id' | 'avatar'> & { avatar?: string }) => void;

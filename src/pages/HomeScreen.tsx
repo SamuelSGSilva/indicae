@@ -1,6 +1,6 @@
 import React from 'react';
-import { User, Screen } from '../types';
-import { icons } from '../constants';
+import { User, Screen } from '../types'; // Caminho atualizado
+import { icons } from '../constants'; // Caminho atualizado
 
 interface HomeScreenProps {
   currentUser: User;

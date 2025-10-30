@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { icons } from '../constants';
+import { icons } from '../constants'; // Caminho atualizado
 
 interface FeedbackScreenProps {
   onBack: () => void;

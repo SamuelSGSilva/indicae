@@ -1,6 +1,6 @@
 import React from 'react';
-import { Screen } from '../types';
-import { icons } from '../constants';
+import { Screen } from '../types'; // Caminho atualizado
+import { icons } from '../constants'; // Caminho atualizado
 
 interface BottomNavProps {
   activeScreen: Screen;

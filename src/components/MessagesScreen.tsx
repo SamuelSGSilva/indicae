@@ -1,6 +1,6 @@
 import React from 'react';
-import { ChatThread, User } from '../types';
-import { icons } from '../constants';
+import { ChatThread, User } from '../types'; // Caminho atualizado
+import { icons } from '../constants'; // Caminho atualizado
 
 interface MessagesScreenProps {
   chats: ChatThread[];
