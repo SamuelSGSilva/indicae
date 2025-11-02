@@ -8,7 +8,6 @@ export enum Screen {
   SkillSearch = 'SkillSearch',
   Initial = 'Initial',
   Home = 'Home',
-  OtherUserProfile = 'OtherUserProfile',
 }
 
 export interface User {

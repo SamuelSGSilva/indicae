@@ -14,7 +14,8 @@ const RegistrationScreen = lazy(() => import('./components/RegistrationScreen'))
 const SkillSearchScreen = lazy(() => import('./components/SkillSearchScreen'));
 const InitialScreen = lazy(() => import('./pages/InitialScreen'));
 const HomeScreen = lazy(() => import('./pages/HomeScreen'));
-const OtherUserProfileScreen = lazy(() => import('./components/OtherUserProfileScreen'));
+// Importação da nova modal
+import OtherUserProfileModal from './components/OtherUserProfileModal';
 
 import ToastProvider from './components/ToastProvider';
 import { supabase } from './integrations/supabase/client';
@@ -315,14 +316,14 @@ const App: React.FC = () => {
   }, [fetchConnections, fetchAllUsers]);
 
   const handleNavigate = (screen: Screen) => {
-    setViewingOtherUser(null);
+    setViewingOtherUser(null); // Garante que a modal seja fechada ao navegar para outra tela
     setChattingWith(null);
     setHistory(prev => [...prev, screen]);
   };
 
   const handleViewOtherUser = (user: User) => {
-    setViewingOtherUser(user);
-    handleNavigate(Screen.OtherUserProfile);
+    setViewingOtherUser(user); // Apenas define o usuário para a modal
+    // Não há navegação de tela aqui, a modal será renderizada condicionalmente
   };
 
   const handleStartChat = (user: User) => {
@@ -335,9 +336,10 @@ const App: React.FC = () => {
   }
   
   const handleBack = () => {
-    setViewingOtherUser(null);
-    setChattingWith(null);
-    if (history.length > 1) {
+    if (viewingOtherUser) { // Se estiver visualizando um perfil, feche a modal
+      setViewingOtherUser(null);
+    } else if (history.length > 1) { // Caso contrário, volte na história
+      setChattingWith(null);
       setHistory(prev => prev.slice(0, -1));
     }
   }
@@ -422,7 +424,8 @@ const App: React.FC = () => {
                 }]);
             }
         }
-        handleBack();
+        setViewingOtherUser(null); // Fecha a modal após enviar a solicitação
+        fetchConnections(currentUser.id); // Atualiza as conexões
       }
     } catch (e: any) {
       console.error('Unexpected error during sending connection request:', e);
@@ -568,26 +571,6 @@ const App: React.FC = () => {
         return currentUser ? <CreateProfileScreen user={currentUser} onBack={handleBack} onSave={handleSaveProfile}/> : <div className="p-4 text-center">Carregando...</div>;
       case Screen.SkillSearch:
         return <SkillSearchScreen allUsers={users.filter(u => u.id !== currentUser?.id)} onUserClick={handleViewOtherUser} onBack={handleBack} />;
-      case Screen.OtherUserProfile:
-        console.log("App.tsx: Attempting to render OtherUserProfileScreen.");
-        console.log("App.tsx: viewingOtherUser is", viewingOtherUser);
-        console.log("App.tsx: currentUser is", currentUser);
-        if (!viewingOtherUser || !currentUser) {
-          console.log("App.tsx: Condition met: viewingOtherUser or currentUser is null/undefined. Showing loading.");
-          return <div className="p-4 text-center">Carregando perfil...</div>;
-        }
-        const isPending = sentConnectionRequests.some(req => req.receiver_id === viewingOtherUser.id && req.status === 'pending');
-        const isConnected = acceptedConnections.some(conn => 
-            (conn.sender_id === currentUser.id && conn.receiver_id === viewingOtherUser.id) ||
-            (conn.receiver_id === currentUser.id && conn.sender_id === viewingOtherUser.id)
-        );
-        return <OtherUserProfileScreen 
-                  user={viewingOtherUser} 
-                  onBack={handleBack} 
-                  onSendConnectionRequest={handleSendConnectionRequest}
-                  isConnectionPending={isPending}
-                  isConnected={isConnected}
-               />;
       default:
         return <HomeScreen currentUser={currentUser!} onNavigate={handleNavigate} />;
     }
@@ -607,7 +590,7 @@ const App: React.FC = () => {
           return <RegistrationScreen onRegister={handleRegister} onNavigateToLogin={() => setAuthFlowScreen('login')} />;
       }
 
-      const isNavVisible = ![Screen.Chat, Screen.SkillSearch, Screen.Initial, Screen.OtherUserProfile].includes(activeScreen);
+      const isNavVisible = ![Screen.Chat, Screen.SkillSearch, Screen.Initial].includes(activeScreen);
 
       return (
           <>
@@ -617,6 +600,20 @@ const App: React.FC = () => {
               </Suspense>
             </div>
             {isNavVisible && <BottomNav activeScreen={activeScreen} onNavigate={(s) => setHistory([s])} />}
+
+            {/* Renderiza a modal de perfil de outro usuário se viewingOtherUser estiver definido */}
+            {viewingOtherUser && currentUser && (
+              <OtherUserProfileModal
+                user={viewingOtherUser}
+                onClose={() => setViewingOtherUser(null)}
+                onSendConnectionRequest={handleSendConnectionRequest}
+                isConnectionPending={sentConnectionRequests.some(req => req.receiver_id === viewingOtherUser.id && req.status === 'pending')}
+                isConnected={acceptedConnections.some(conn => 
+                    (conn.sender_id === currentUser.id && conn.receiver_id === viewingOtherUser.id) ||
+                    (conn.receiver_id === currentUser.id && conn.sender_id === viewingOtherUser.id)
+                )}
+              />
+            )}
           </>
       );
   }
