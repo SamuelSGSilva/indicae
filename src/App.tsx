@@ -394,19 +394,29 @@ const App: React.FC = () => {
   const handleSendConnectionRequest = async (receiverId: string, interestMessage: string) => {
     if (!currentUser) {
       toast.error('Você precisa estar logado para enviar solicitações de conexão.');
+      console.error('handleSendConnectionRequest: currentUser is null.');
       return;
     }
 
     if (currentUser.id === receiverId) {
       toast.error('Você não pode enviar uma solicitação de conexão para si mesmo.');
+      console.warn('handleSendConnectionRequest: Attempted to send request to self.');
       return;
     }
 
     const existingRequest = sentConnectionRequests.find(req => req.receiver_id === receiverId && req.status === 'pending');
     if (existingRequest) {
         toast.warn('Você já enviou uma solicitação de conexão para este usuário.');
+        console.warn('handleSendConnectionRequest: Existing pending request found.');
         return;
     }
+
+    console.log('handleSendConnectionRequest: Attempting to send connection request with:', {
+      sender_id: currentUser.id,
+      receiver_id: receiverId,
+      interest_message: interestMessage,
+      status: 'pending',
+    });
 
     try {
       const { data, error } = await supabase
@@ -421,9 +431,10 @@ const App: React.FC = () => {
         .single();
 
       if (error) {
-        console.error('Error sending connection request:', error);
+        console.error('handleSendConnectionRequest: Error sending connection request:', error);
         toast.error(`Erro ao enviar solicitação de conexão: ${error.message}`);
       } else {
+        console.log('handleSendConnectionRequest: Connection request sent successfully:', data);
         toast.success('Solicitação de conexão enviada com sucesso!');
         if (data) {
             const receiverUser = users.find(u => u.id === receiverId);
@@ -438,7 +449,7 @@ const App: React.FC = () => {
         fetchConnections(currentUser.id);
       }
     } catch (e: any) {
-      console.error('Unexpected error during sending connection request:', e);
+      console.error('handleSendConnectionRequest: Unexpected error during sending connection request:', e);
       toast.error(`Erro inesperado ao enviar solicitação: ${e.message || 'Verifique o console.'}`);
     }
   };
@@ -453,7 +464,7 @@ const App: React.FC = () => {
           .update({ status: action })
           .eq('id', connectionId)
           .eq('receiver_id', currentUser.id)
-          .select(); // Adicionado .select() para obter os dados atualizados
+          .select();
 
         if (error) {
           console.error(`handleConnectionAction: Erro ao ${action} conexão:`, error);
@@ -577,9 +588,9 @@ const App: React.FC = () => {
       case Screen.Connections:
         return <ConnectionsScreen 
                   connections={connections} 
-                  acceptedConnections={acceptedConnections} // Passando acceptedConnections
+                  acceptedConnections={acceptedConnections}
                   onConnectionAction={handleConnectionAction} 
-                  onUserClick={handleStartChat} // onUserClick agora inicia o chat para conexões aceitas
+                  onUserClick={handleStartChat}
                   onBack={handleBack} 
                />;
       case Screen.Messages:
