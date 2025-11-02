@@ -65,181 +65,165 @@ const App: React.FC = () => {
 
   // Function to fetch connection requests from Supabase
   const fetchConnections = useCallback(async (userId: string) => {
-    // Fetch incoming pending requests (STEP 1: Fetch requests without join)
-    const { data: rawIncomingRequests, error: incomingError } = await supabase
+    // Fetch incoming pending requests
+    const { data: incomingRequests, error: incomingError } = await supabase
       .from('connection_requests')
-      .select(`id, sender_id, receiver_id, status, interest_message, created_at`)
+      .select(`
+        id,
+        sender_id,
+        receiver_id,
+        status,
+        interest_message,
+        created_at,
+        sender_profile:profiles!connection_requests_sender_id_fkey(
+          id,
+          first_name,
+          last_name,
+          avatar_url,
+          dob,
+          city,
+          education,
+          soft_skills,
+          hard_skills
+        )
+      `)
       .eq('receiver_id', userId)
       .eq('status', 'pending');
 
     if (incomingError) {
-      console.error('Error fetching raw incoming connection requests:', incomingError);
+      console.error('Error fetching incoming connection requests:', incomingError);
       toast.error('Erro ao carregar solicitações de conexão recebidas.');
       return;
     }
 
-    // STEP 2: Fetch sender profiles for each incoming request
-    const mappedIncomingRequests: ConnectionRequest[] = await Promise.all(
-      rawIncomingRequests.map(async (req: any) => {
-        const { data: senderProfile, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills')
-          .eq('id', req.sender_id)
-          .single();
-
-        if (profileError) {
-          console.warn('Could not fetch sender profile for request:', req.id, profileError);
-          // Fallback to a generic user if profile not found
-          return {
-            id: req.id,
-            sender_id: req.sender_id,
-            receiver_id: req.receiver_id,
-            status: req.status,
-            interest_message: req.interest_message,
-            created_at: req.created_at,
-            user: { id: req.sender_id, name: 'Usuário Desconhecido', avatar: '', dob: '', city: '', email: '' },
-          };
-        }
-
-        return {
-          id: req.id,
-          sender_id: req.sender_id,
-          receiver_id: req.receiver_id,
-          status: req.status,
-          interest_message: req.interest_message,
-          created_at: req.created_at,
-          user: {
-            id: senderProfile.id,
-            name: `${senderProfile.first_name || ''} ${senderProfile.last_name || ''}`.trim(),
-            avatar: senderProfile.avatar_url || `https://picsum.photos/seed/${senderProfile.id}/200/200`,
-            dob: senderProfile.dob || '',
-            city: senderProfile.city || '',
-            education: senderProfile.education || '',
-            softSkills: senderProfile.soft_skills || [],
-            hardSkills: senderProfile.hard_skills || [],
-            email: '',
-          },
-        };
-      })
-    );
+    const mappedIncomingRequests: ConnectionRequest[] = incomingRequests.map((req: any) => {
+      const senderProfile = req.sender_profile;
+      return {
+        id: req.id,
+        sender_id: req.sender_id,
+        receiver_id: req.receiver_id,
+        status: req.status,
+        interest_message: req.interest_message,
+        created_at: req.created_at,
+        user: {
+          id: senderProfile.id,
+          name: `${senderProfile.first_name || ''} ${senderProfile.last_name || ''}`.trim(),
+          avatar: senderProfile.avatar_url || `https://picsum.photos/seed/${senderProfile.id}/200/200`,
+          dob: senderProfile.dob || '',
+          city: senderProfile.city || '',
+          education: senderProfile.education || '',
+          softSkills: senderProfile.soft_skills || [],
+          hardSkills: senderProfile.hard_skills || [],
+          email: '',
+        },
+      };
+    });
     setConnections(mappedIncomingRequests);
 
-    // Fetch sent pending requests (STEP 1: Fetch requests without join)
-    const { data: rawSentRequests, error: sentError } = await supabase
+    // Fetch sent pending requests
+    const { data: sentRequests, error: sentError } = await supabase
       .from('connection_requests')
-      .select(`id, sender_id, receiver_id, status, interest_message, created_at`)
+      .select(`
+        id,
+        sender_id,
+        receiver_id,
+        status,
+        interest_message,
+        created_at,
+        receiver_profile:profiles!connection_requests_receiver_id_fkey(
+          id,
+          first_name,
+          last_name,
+          avatar_url,
+          dob,
+          city,
+          education,
+          soft_skills,
+          hard_skills
+        )
+      `)
       .eq('sender_id', userId)
       .eq('status', 'pending');
 
     if (sentError) {
-      console.error('Error fetching raw sent connection requests:', sentError);
+      console.error('Error fetching sent connection requests:', sentError);
       toast.error('Erro ao carregar solicitações de conexão enviadas.');
       return;
     }
-
-    // STEP 2: Fetch receiver profiles for each sent request
-    const mappedSentRequests: ConnectionRequest[] = await Promise.all(
-      rawSentRequests.map(async (req: any) => {
-        const { data: receiverProfile, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills')
-          .eq('id', req.receiver_id)
-          .single();
-
-        if (profileError) {
-          console.warn('Could not fetch receiver profile for sent request:', req.id, profileError);
-          return {
+    const mappedSentRequests: ConnectionRequest[] = sentRequests.map((req: any) => {
+        const receiverProfile = req.receiver_profile;
+        return {
             id: req.id,
             sender_id: req.sender_id,
             receiver_id: req.receiver_id,
             status: req.status,
             interest_message: req.interest_message,
             created_at: req.created_at,
-            user: { id: req.receiver_id, name: 'Usuário Desconhecido', avatar: '', dob: '', city: '', email: '' },
-          };
-        }
-
-        return {
-          id: req.id,
-          sender_id: req.sender_id,
-          receiver_id: req.receiver_id,
-          status: req.status,
-          interest_message: req.interest_message,
-          created_at: req.created_at,
-          user: {
-            id: receiverProfile.id,
-            name: `${receiverProfile.first_name || ''} ${receiverProfile.last_name || ''}`.trim(),
-            avatar: receiverProfile.avatar_url || `https://picsum.photos/seed/${receiverProfile.id}/200/200`,
-            dob: receiverProfile.dob || '',
-            city: receiverProfile.city || '',
-            education: receiverProfile.education || '',
-            softSkills: receiverProfile.soft_skills || [],
-            hardSkills: receiverProfile.hard_skills || [],
-            email: '',
-          },
+            user: {
+                id: receiverProfile.id,
+                name: `${receiverProfile.first_name || ''} ${receiverProfile.last_name || ''}`.trim(),
+                avatar: receiverProfile.avatar_url || `https://picsum.photos/seed/${receiverProfile.id}/200/200`,
+                dob: receiverProfile.dob || '',
+                city: receiverProfile.city || '',
+                education: receiverProfile.education || '',
+                softSkills: receiverProfile.soft_skills || [],
+                hardSkills: receiverProfile.hard_skills || [],
+                email: '',
+            },
         };
-      })
-    );
+    });
     setSentConnectionRequests(mappedSentRequests);
 
-    // Fetch accepted connections (STEP 1: Fetch requests without join)
-    const { data: rawAcceptedConns, error: acceptedError } = await supabase
+    // Fetch accepted connections (where current user is sender or receiver)
+    const { data: acceptedConns, error: acceptedError } = await supabase
       .from('connection_requests')
-      .select(`id, sender_id, receiver_id, status, interest_message, created_at`)
+      .select(`
+        id,
+        sender_id,
+        receiver_id,
+        status,
+        interest_message,
+        created_at,
+        sender_profile:profiles!connection_requests_sender_id_fkey(
+          id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills
+        ),
+        receiver_profile:profiles!connection_requests_receiver_id_fkey(
+          id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills
+        )
+      `)
       .eq('status', 'accepted')
       .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`);
 
     if (acceptedError) {
-      console.error('Error fetching raw accepted connections:', acceptedError);
+      console.error('Error fetching accepted connections:', acceptedError);
       toast.error('Erro ao carregar conexões aceitas.');
       return;
     }
 
-    // STEP 2: Fetch other user profiles for each accepted connection
-    const mappedAcceptedConns: ConnectionRequest[] = await Promise.all(
-      rawAcceptedConns.map(async (req: any) => {
-        const otherUserId = req.sender_id === userId ? req.receiver_id : req.sender_id;
-        const { data: otherProfile, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills')
-          .eq('id', otherUserId)
-          .single();
-
-        if (profileError) {
-          console.warn('Could not fetch other profile for accepted connection:', req.id, profileError);
-          return {
+    const mappedAcceptedConns: ConnectionRequest[] = acceptedConns.map((req: any) => {
+        const otherProfile = req.sender_id === userId ? req.receiver_profile : req.sender_profile;
+        return {
             id: req.id,
             sender_id: req.sender_id,
             receiver_id: req.receiver_id,
             status: req.status,
             interest_message: req.interest_message,
             created_at: req.created_at,
-            user: { id: otherUserId, name: 'Usuário Desconhecido', avatar: '', dob: '', city: '', email: '' },
-          };
-        }
-
-        return {
-          id: req.id,
-          sender_id: req.sender_id,
-          receiver_id: req.receiver_id,
-          status: req.status,
-          interest_message: req.interest_message,
-          created_at: req.created_at,
-          user: {
-            id: otherProfile.id,
-            name: `${otherProfile.first_name || ''} ${otherProfile.last_name || ''}`.trim(),
-            avatar: otherProfile.avatar_url || `https://picsum.photos/seed/${otherProfile.id}/200/200`,
-            dob: otherProfile.dob || '',
-            city: otherProfile.city || '',
-            education: otherProfile.education || '',
-            softSkills: otherProfile.soft_skills || [],
-            hardSkills: otherProfile.hard_skills || [],
-            email: '',
-          },
+            user: {
+                id: otherProfile.id,
+                name: `${otherProfile.first_name || ''} ${otherProfile.last_name || ''}`.trim(),
+                avatar: otherProfile.avatar_url || `https://picsum.photos/seed/${otherProfile.id}/200/200`,
+                dob: otherProfile.dob || '',
+                city: otherProfile.city || '',
+                education: otherProfile.education || '',
+                softSkills: otherProfile.soft_skills || [],
+                hardSkills: otherProfile.hard_skills || [],
+                email: '',
+            },
         };
-      })
-    );
+    });
     setAcceptedConnections(mappedAcceptedConns);
+
   }, []);
 
   // Initialize DB and check auth state
