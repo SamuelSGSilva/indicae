@@ -75,7 +75,7 @@ const App: React.FC = () => {
         status,
         interest_message,
         created_at,
-        sender_profile:profiles!sender_id( // Usando o nome da coluna como referência para o join
+        sender_profile:profiles!connection_requests_sender_id_fkey(
           id,
           first_name,
           last_name,
@@ -130,7 +130,7 @@ const App: React.FC = () => {
         status,
         interest_message,
         created_at,
-        receiver_profile:profiles!receiver_id( // Usando o nome da coluna como referência para o join
+        receiver_profile:profiles!connection_requests_receiver_id_fkey(
           id,
           first_name,
           last_name,
@@ -184,10 +184,10 @@ const App: React.FC = () => {
         status,
         interest_message,
         created_at,
-        sender_profile:profiles!sender_id(
+        sender_profile:profiles!connection_requests_sender_id_fkey(
           id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills
         ),
-        receiver_profile:profiles!receiver_id(
+        receiver_profile:profiles!connection_requests_receiver_id_fkey(
           id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills
         )
       `)
