@@ -66,6 +66,8 @@ const App: React.FC = () => {
 
   // Function to fetch connection requests from Supabase
   const fetchConnections = useCallback(async (userId: string) => {
+    console.log("fetchConnections: Iniciando busca de conexões para userId:", userId);
+
     // Fetch incoming pending requests (STEP 1: Fetch requests without join)
     const { data: rawIncomingRequests, error: incomingError } = await supabase
       .from('connection_requests')
@@ -78,6 +80,7 @@ const App: React.FC = () => {
       toast.error('Erro ao carregar solicitações de conexão recebidas.');
       return;
     }
+    console.log("fetchConnections: Solicitações pendentes recebidas (raw):", rawIncomingRequests);
 
     // STEP 2: Fetch sender profiles for each incoming request
     const mappedIncomingRequests: ConnectionRequest[] = await Promise.all(
@@ -124,6 +127,8 @@ const App: React.FC = () => {
       })
     );
     setConnections(mappedIncomingRequests);
+    console.log("fetchConnections: Solicitações pendentes mapeadas:", mappedIncomingRequests);
+
 
     // Fetch sent pending requests (STEP 1: Fetch requests without join)
     const { data: rawSentRequests, error: sentError } = await supabase
@@ -137,6 +142,7 @@ const App: React.FC = () => {
       toast.error('Erro ao carregar solicitações de conexão enviadas.');
       return;
     }
+    console.log("fetchConnections: Solicitações enviadas recebidas (raw):", rawSentRequests);
 
     // STEP 2: Fetch receiver profiles for each sent request
     const mappedSentRequests: ConnectionRequest[] = await Promise.all(
@@ -182,6 +188,8 @@ const App: React.FC = () => {
       })
     );
     setSentConnectionRequests(mappedSentRequests);
+    console.log("fetchConnections: Solicitações enviadas mapeadas:", mappedSentRequests);
+
 
     // Fetch accepted connections (STEP 1: Fetch requests without join)
     const { data: rawAcceptedConns, error: acceptedError } = await supabase
@@ -195,6 +203,8 @@ const App: React.FC = () => {
       toast.error('Erro ao carregar conexões aceitas.');
       return;
     }
+    console.log("fetchConnections: Conexões aceitas recebidas (raw):", rawAcceptedConns);
+
 
     // STEP 2: Fetch other user profiles for each accepted connection
     const mappedAcceptedConns: ConnectionRequest[] = await Promise.all(
@@ -241,6 +251,7 @@ const App: React.FC = () => {
       })
     );
     setAcceptedConnections(mappedAcceptedConns);
+    console.log("fetchConnections: Conexões aceitas mapeadas e definidas no estado:", mappedAcceptedConns);
   }, []);
 
   // Initialize DB and check auth state
@@ -436,16 +447,19 @@ const App: React.FC = () => {
       if (!currentUser) return;
 
       try {
-        const { error } = await supabase
+        console.log(`handleConnectionAction: Tentando ${action} conexão ${connectionId} para receiver_id ${currentUser.id}`);
+        const { data, error } = await supabase
           .from('connection_requests')
           .update({ status: action })
           .eq('id', connectionId)
-          .eq('receiver_id', currentUser.id);
+          .eq('receiver_id', currentUser.id)
+          .select(); // Adicionado .select() para obter os dados atualizados
 
         if (error) {
-          console.error(`Error ${action}ing connection:`, error);
-          toast.error(`Erro ao ${action === 'accept' ? 'aceitar' : 'recusar'} conexão.`);
+          console.error(`handleConnectionAction: Erro ao ${action} conexão:`, error);
+          toast.error(`Erro ao ${action === 'accept' ? 'aceitar' : 'recusar'} conexão: ${error.message}`);
         } else {
+          console.log(`handleConnectionAction: Conexão ${action} com sucesso. Dados atualizados:`, data);
           toast.success(`Conexão ${action === 'accept' ? 'aceita' : 'recusada'} com sucesso!`);
           fetchConnections(currentUser.id);
 
@@ -457,7 +471,7 @@ const App: React.FC = () => {
           }
         }
       } catch (e: any) {
-        console.error('Unexpected error during connection action:', e);
+        console.error('handleConnectionAction: Erro inesperado durante a ação de conexão:', e);
         toast.error(`Erro inesperado ao processar conexão: ${e.message || 'Verifique o console.'}`);
       }
   };

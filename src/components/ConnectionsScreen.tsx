@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Adicionado useEffect
 import { ConnectionRequest, User } from '../types';
 import { icons } from '../constants';
 
@@ -45,6 +45,10 @@ const ConnectedUserCard: React.FC<{ user: User, onChatClick: (user: User) => voi
 const ConnectionsScreen: React.FC<ConnectionsScreenProps> = ({ connections, acceptedConnections, onConnectionAction, onUserClick, onBack }) => {
   const [query, setQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'requests' | 'connected'>('requests');
+
+  useEffect(() => {
+    console.log("ConnectionsScreen: acceptedConnections prop recebida:", acceptedConnections);
+  }, [acceptedConnections]);
 
   const filteredRequests = connections.filter(c => c.user.name.toLowerCase().includes(query.toLowerCase()));
   const filteredConnectedUsers = acceptedConnections.filter(c => c.user.name.toLowerCase().includes(query.toLowerCase()));
