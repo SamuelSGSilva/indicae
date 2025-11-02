@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { User } from '../types';
-import { icons, calculateAge, ALL_CITIES } from '../constants';
+import { icons, calculateAge, ALL_CITIES, AGE_RANGES } from '../constants';
 import CityModal from './CityModal'; // Importar o CityModal
 
 interface SearchScreenProps {
@@ -22,7 +22,7 @@ const UserCard: React.FC<{ user: User, onClick: () => void }> = ({ user, onClick
 const SearchScreen: React.FC<SearchScreenProps> = ({ users, onUserClick, onBack }) => {
   const [query, setQuery] = useState('');
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
-  const [selectedMinAge, setSelectedMinAge] = useState<number | null>(null);
+  const [selectedAgeRange, setSelectedAgeRange] = useState<string>(AGE_RANGES[0].label); // Default to 'Todas as Idades'
   const [isCityModalOpen, setIsCityModalOpen] = useState(false);
 
   const filteredUsers = useMemo(() => {
@@ -46,16 +46,17 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ users, onUserClick, onBack 
       );
     }
 
-    // Filter by minimum age
-    if (selectedMinAge !== null && selectedMinAge > 0) {
+    // Filter by age range
+    const ageRange = AGE_RANGES.find(range => range.label === selectedAgeRange);
+    if (ageRange && ageRange.label !== 'Todas as Idades') {
       currentFilteredUsers = currentFilteredUsers.filter(user => {
         const age = calculateAge(user.dob);
-        return age >= selectedMinAge;
+        return age >= ageRange.min && age <= ageRange.max;
       });
     }
 
     return currentFilteredUsers;
-  }, [users, query, selectedCity, selectedMinAge]);
+  }, [users, query, selectedCity, selectedAgeRange]);
   
   return (
     <>
@@ -88,16 +89,19 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ users, onUserClick, onBack 
                 Local: {selectedCity || 'Todos'}
               </button>
               <div className="flex items-center bg-[#0d1b2a] rounded-full px-4 py-2">
-                <label htmlFor="minAge" className="mr-2">Idade Mínima:</label>
-                <input
-                  id="minAge"
-                  type="number"
-                  min="0"
-                  placeholder="Min"
-                  value={selectedMinAge || ''}
-                  onChange={(e) => setSelectedMinAge(e.target.value ? parseInt(e.target.value) : null)}
-                  className="bg-transparent w-12 text-white focus:outline-none text-right"
-                />
+                <label htmlFor="ageRange" className="mr-2">Idade:</label>
+                <select
+                  id="ageRange"
+                  value={selectedAgeRange}
+                  onChange={(e) => setSelectedAgeRange(e.target.value)}
+                  className="bg-transparent text-white focus:outline-none"
+                >
+                  {AGE_RANGES.map(range => (
+                    <option key={range.label} value={range.label} className="bg-[#0d1b2a] text-white">
+                      {range.label}
+                    </option>
+                  ))}
+                </select>
               </div>
           </div>
         </div>

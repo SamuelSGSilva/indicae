@@ -78,6 +78,14 @@ export const ALL_CITIES = [
   'Paranavaí', 'Apucarana', 'Colombo', 'São José dos Pinhais', 'Pinhais', 'Araucária',
 ].sort();
 
+export const AGE_RANGES = [
+  { label: 'Todas as Idades', min: 0, max: 999 },
+  { label: '18-24 anos', min: 18, max: 24 },
+  { label: '25-34 anos', min: 25, max: 34 },
+  { label: '35-44 anos', min: 35, max: 44 },
+  { label: '45+ anos', min: 45, max: 999 },
+];
+
 
 export const MOCK_USERS: User[] = [
   { id: "1", name: 'Jefferson Henrique', dob: '2002-04-15', city: 'Foz do Iguaçu', avatar: 'https://picsum.photos/id/1005/200/200', education: 'Engenharia de Software - Uniamérica Descomplica', softSkills: ['Liderança', 'Comunicação', 'Proatividade', 'Trabalho em Equipe'], hardSkills: ['DevOps', 'Big Data', 'Inteligência Artificial', 'React Native'], email: 'jefferson@indicai.com', password: '123' },
