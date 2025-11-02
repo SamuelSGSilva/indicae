@@ -316,14 +316,13 @@ const App: React.FC = () => {
   }, [fetchConnections, fetchAllUsers]);
 
   const handleNavigate = (screen: Screen) => {
-    setViewingOtherUser(null); // Garante que a modal seja fechada ao navegar para outra tela
+    setViewingOtherUser(null);
     setChattingWith(null);
     setHistory(prev => [...prev, screen]);
   };
 
   const handleViewOtherUser = (user: User) => {
-    setViewingOtherUser(user); // Apenas define o usuário para a modal
-    // Não há navegação de tela aqui, a modal será renderizada condicionalmente
+    setViewingOtherUser(user);
   };
 
   const handleStartChat = (user: User) => {
@@ -336,9 +335,9 @@ const App: React.FC = () => {
   }
   
   const handleBack = () => {
-    if (viewingOtherUser) { // Se estiver visualizando um perfil, feche a modal
+    if (viewingOtherUser) {
       setViewingOtherUser(null);
-    } else if (history.length > 1) { // Caso contrário, volte na história
+    } else if (history.length > 1) {
       setChattingWith(null);
       setHistory(prev => prev.slice(0, -1));
     }
@@ -424,8 +423,8 @@ const App: React.FC = () => {
                 }]);
             }
         }
-        setViewingOtherUser(null); // Fecha a modal após enviar a solicitação
-        fetchConnections(currentUser.id); // Atualiza as conexões
+        setViewingOtherUser(null);
+        fetchConnections(currentUser.id);
       }
     } catch (e: any) {
       console.error('Unexpected error during sending connection request:', e);
@@ -562,7 +561,13 @@ const App: React.FC = () => {
       case Screen.Search:
         return <SearchScreen users={users.filter(u => u.id !== currentUser?.id)} onUserClick={handleViewOtherUser} onBack={handleBack} onNavigate={handleNavigate} />;
       case Screen.Connections:
-        return <ConnectionsScreen connections={connections} onConnectionAction={handleConnectionAction} onUserClick={handleStartChat} onBack={handleBack} />;
+        return <ConnectionsScreen 
+                  connections={connections} 
+                  acceptedConnections={acceptedConnections} // Passando acceptedConnections
+                  onConnectionAction={handleConnectionAction} 
+                  onUserClick={handleStartChat} // onUserClick agora inicia o chat para conexões aceitas
+                  onBack={handleBack} 
+               />;
       case Screen.Messages:
           return <MessagesScreen chats={chats} onChatClick={handleStartChat} onBack={handleBack} />;
       case Screen.Profile:
