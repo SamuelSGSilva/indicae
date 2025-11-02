@@ -191,7 +191,8 @@ const App: React.FC = () => {
     console.log("fetchConnections: Solicitações enviadas mapeadas:", mappedSentRequests);
 
 
-    // Fetch accepted connections (STEP 1: Fetch requests without join)
+    // Fetch accepted connections
+    console.log(`fetchConnections: Buscando conexões aceitas para userId: ${userId}`);
     const { data: rawAcceptedConns, error: acceptedError } = await supabase
       .from('connection_requests')
       .select(`id, sender_id, receiver_id, status, interest_message, created_at`)
@@ -199,7 +200,7 @@ const App: React.FC = () => {
       .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`);
 
     if (acceptedError) {
-      console.error('Error fetching raw accepted connections:', acceptedError);
+      console.error('fetchConnections: Erro ao buscar conexões aceitas (raw):', acceptedError);
       toast.error('Erro ao carregar conexões aceitas.');
       return;
     }
@@ -210,6 +211,7 @@ const App: React.FC = () => {
     const mappedAcceptedConns: ConnectionRequest[] = await Promise.all(
       rawAcceptedConns.map(async (req: any) => {
         const otherUserId = req.sender_id === userId ? req.receiver_id : req.sender_id;
+        console.log(`fetchConnections: Buscando perfil para otherUserId: ${otherUserId} para conexão ${req.id}`);
         const { data: otherProfile, error: profileError } = await supabase
           .from('profiles')
           .select('id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills')
@@ -217,7 +219,7 @@ const App: React.FC = () => {
           .single();
 
         if (profileError) {
-          console.warn('Could not fetch other profile for accepted connection:', req.id, profileError);
+          console.warn(`fetchConnections: Não foi possível buscar o perfil para otherUserId: ${otherUserId} (conexão ${req.id}):`, profileError);
           return {
             id: req.id,
             sender_id: req.sender_id,
@@ -228,6 +230,7 @@ const App: React.FC = () => {
             user: { id: otherUserId, name: 'Usuário Desconhecido', avatar: '', dob: '', city: '', email: '' },
           };
         }
+        console.log(`fetchConnections: Perfil encontrado para otherUserId: ${otherUserId}:`, otherProfile);
 
         return {
           id: req.id,
@@ -394,20 +397,17 @@ const App: React.FC = () => {
   const handleSendConnectionRequest = async (receiverId: string, interestMessage: string) => {
     if (!currentUser) {
       toast.error('Você precisa estar logado para enviar solicitações de conexão.');
-      console.error('handleSendConnectionRequest: currentUser is null.');
       return;
     }
 
     if (currentUser.id === receiverId) {
       toast.error('Você não pode enviar uma solicitação de conexão para si mesmo.');
-      console.warn('handleSendConnectionRequest: Attempted to send request to self.');
       return;
     }
 
     const existingRequest = sentConnectionRequests.find(req => req.receiver_id === receiverId && req.status === 'pending');
     if (existingRequest) {
         toast.warn('Você já enviou uma solicitação de conexão para este usuário.');
-        console.warn('handleSendConnectionRequest: Existing pending request found.');
         return;
     }
 
@@ -464,13 +464,13 @@ const App: React.FC = () => {
           .update({ status: action })
           .eq('id', connectionId)
           .eq('receiver_id', currentUser.id)
-          .select();
+          .select(); // Adicionado .select() para obter os dados atualizados
 
         if (error) {
           console.error(`handleConnectionAction: Erro ao ${action} conexão:`, error);
           toast.error(`Erro ao ${action === 'accept' ? 'aceitar' : 'recusar'} conexão: ${error.message}`);
         } else {
-          console.log(`handleConnectionAction: Conexão ${action} com sucesso. Dados atualizados:`, data);
+          console.log(`handleConnectionAction: Conexão ${action} com sucesso. Dados atualizados do Supabase:`, data); // Added log here
           toast.success(`Conexão ${action === 'accept' ? 'aceita' : 'recusada'} com sucesso!`);
           fetchConnections(currentUser.id);
 
