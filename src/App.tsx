@@ -569,7 +569,13 @@ const App: React.FC = () => {
       case Screen.SkillSearch:
         return <SkillSearchScreen allUsers={users.filter(u => u.id !== currentUser?.id)} onUserClick={handleViewOtherUser} onBack={handleBack} />;
       case Screen.OtherUserProfile:
-        if (!viewingOtherUser || !currentUser) return <div className="p-4 text-center">Carregando perfil...</div>;
+        console.log("App.tsx: Attempting to render OtherUserProfileScreen.");
+        console.log("App.tsx: viewingOtherUser is", viewingOtherUser);
+        console.log("App.tsx: currentUser is", currentUser);
+        if (!viewingOtherUser || !currentUser) {
+          console.log("App.tsx: Condition met: viewingOtherUser or currentUser is null/undefined. Showing loading.");
+          return <div className="p-4 text-center">Carregando perfil...</div>;
+        }
         const isPending = sentConnectionRequests.some(req => req.receiver_id === viewingOtherUser.id && req.status === 'pending');
         const isConnected = acceptedConnections.some(conn => 
             (conn.sender_id === currentUser.id && conn.receiver_id === viewingOtherUser.id) ||
