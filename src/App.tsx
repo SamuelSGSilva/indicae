@@ -21,10 +21,10 @@ import ToastProvider from './components/ToastProvider';
 import { supabase } from './integrations/supabase/client';
 import toast from 'react-hot-toast';
 
-console.log("App.tsx: Componente App carregado no arquivo."); // Log de carregamento do arquivo
+console.log("App.tsx: Componente App carregado no arquivo.");
 
 const App: React.FC = () => {
-  console.log("App component rendering..."); // Log de início da renderização do componente
+  console.log("App component rendering...");
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [authFlowScreen, setAuthFlowScreen] = useState<'initial' | 'login' | 'register'>('initial');
   const [history, setHistory] = useState<Screen[]>([Screen.Initial]);
@@ -290,10 +290,11 @@ const App: React.FC = () => {
 
   // Initialize DB and check auth state
   useEffect(() => {
-    console.log("App useEffect: Inicializando listener de autenticação e buscas de dados."); // Log de início do useEffect
+    console.log("App useEffect: Inicializando listener de autenticação e buscas de dados.");
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("onAuthStateChange: Evento:", event, "Sessão:", session);
       if (session) {
+        console.log('onAuthStateChange: Session existe, buscando perfil para user.id:', session.user.id); // Novo log
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills')
@@ -307,10 +308,12 @@ const App: React.FC = () => {
           setCurrentUser(null);
           setAuthFlowScreen('initial');
           setHistory([Screen.Initial]);
+          console.log('onAuthStateChange: Erro na busca do perfil, isAuthenticated setado para false.'); // Novo log
           return;
         }
 
         if (profile) {
+          console.log('onAuthStateChange: Perfil encontrado:', profile); // Novo log
           const user: User = {
             id: profile.id,
             name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
@@ -328,8 +331,9 @@ const App: React.FC = () => {
           toast.success(`Bem-vindo(a), ${user.name}!`);
           fetchConnections(user.id);
           fetchAllUsers();
+          console.log('onAuthStateChange: Usuário autenticado e perfil carregado com sucesso.'); // Novo log
         } else {
-          console.warn('onAuthStateChange: Usuário Supabase autenticado, mas nenhum perfil encontrado.');
+          console.warn('onAuthStateChange: Usuário Supabase autenticado, mas nenhum perfil encontrado no banco de dados.'); // Novo log
           setIsAuthenticated(true);
           setCurrentUser({
             id: session.user.id,
@@ -340,6 +344,7 @@ const App: React.FC = () => {
           toast.warn('Seu perfil está incompleto. Por favor, edite-o.');
           fetchConnections(session.user.id);
           fetchAllUsers();
+          console.log('onAuthStateChange: Usuário autenticado, perfil genérico carregado.'); // Novo log
         }
       } else {
         console.log("onAuthStateChange: Usuário desautenticado.");
@@ -352,13 +357,12 @@ const App: React.FC = () => {
         setUsers([]);
         setSentConnectionRequests([]);
         setAcceptedConnections([]);
-        setChats([]); // Clear chats on logout
+        setChats([]);
+        console.log('onAuthStateChange: Usuário deslogado.'); // Novo log
       }
     });
 
-    // The local db.initialize() is still used for mock chats, but real messages will override/supplement
     const data = db.initialize();
-    // setChats(data.chats); // We will populate chats from Supabase now
 
     return () => {
       console.log('Realtime: Desinscrevendo-se do canal de mensagens.');
@@ -611,30 +615,27 @@ const App: React.FC = () => {
           .update({ status: action })
           .eq('id', connectionId)
           .eq('receiver_id', currentUser.id)
-          .select(); // Adicionado .select() para obter os dados atualizados
+          .select();
 
         if (error) {
           console.error(`handleConnectionAction: Erro ao ${action} conexão:`, error);
-          // Adicionando logs mais detalhados do erro do Supabase
           if (error.details) console.error('Supabase Error Details:', error.details);
           if (error.hint) console.error('Supabase Error Hint:', error.hint);
           toast.error(`Erro ao ${action === 'accept' ? 'aceitar' : 'recusar'} conexão: ${error.message}`);
         } else {
-          // Verifica se alguma linha foi realmente atualizada
           if (!data || data.length === 0) {
             console.warn(`handleConnectionAction: Nenhuma conexão encontrada ou atualizada para id ${connectionId} e receiver_id ${currentUser.id}.`);
             toast.error('Não foi possível encontrar ou atualizar a solicitação de conexão. Verifique se você é o destinatário.');
-            return; // Sai da função se nenhuma linha foi atualizada
+            return;
           }
 
           console.log(`handleConnectionAction: Conexão ${action} com sucesso. Dados atualizados do Supabase:`, data);
           toast.success(`Conexão ${action === 'accept' ? 'aceita' : 'recusada'} com sucesso!`);
-          await fetchConnections(currentUser.id); // Use await here to ensure state is updated before proceeding
+          await fetchConnections(currentUser.id);
 
           if (action === 'accept') {
             const acceptedConnection = connections.find(c => c.id === connectionId);
             if (acceptedConnection && !chats.some(c => c.contact.id === acceptedConnection.user.id)) {
-              // When a connection is accepted, we should also fetch existing messages for this new chat
               const messages = await fetchMessages(currentUser.id, acceptedConnection.user.id);
               setChats(prev => [...prev, { id: acceptedConnection.id, contact: acceptedConnection.user, messages: messages }]);
               console.log("handleConnectionAction: Novo chat adicionado após aceitar conexão:", acceptedConnection.user.name);
@@ -670,8 +671,6 @@ const App: React.FC = () => {
           toast.error(`Erro ao enviar mensagem: ${error.message}`);
         } else {
           console.log('handleSendMessage: Mensagem enviada com sucesso para Supabase:', data);
-          // The real-time subscription will handle updating the state, so no need to manually update here.
-          // toast.success('Mensagem enviada!'); // Optional: show toast for sent message
         }
       } catch (e: any) {
         console.error('handleSendMessage: Erro inesperado ao enviar mensagem:', e);
