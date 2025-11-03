@@ -73,191 +73,113 @@ const App: React.FC = () => {
   const fetchConnections = useCallback(async (userId: string) => {
     console.log("fetchConnections: Iniciando busca de conexões para userId:", userId);
 
-    // Fetch incoming pending requests (STEP 1: Fetch requests without join)
-    const { data: rawIncomingRequests, error: incomingError } = await supabase
-      .from('connection_requests')
-      .select(`id, sender_id, receiver_id, status, interest_message, created_at`)
-      .eq('receiver_id', userId)
-      .eq('status', 'pending');
+    // 1. Fetch all raw connection requests in parallel
+    const [
+      { data: rawIncomingRequests, error: incomingError },
+      { data: rawSentRequests, error: sentError },
+      { data: rawAcceptedConns, error: acceptedError },
+    ] = await Promise.all([
+      supabase
+        .from('connection_requests')
+        .select(`id, sender_id, receiver_id, status, interest_message, created_at`)
+        .eq('receiver_id', userId)
+        .eq('status', 'pending'),
+      supabase
+        .from('connection_requests')
+        .select(`id, sender_id, receiver_id, status, interest_message, created_at`)
+        .eq('sender_id', userId)
+        .eq('status', 'pending'),
+      supabase
+        .from('connection_requests')
+        .select(`id, sender_id, receiver_id, status, interest_message, created_at`)
+        .eq('status', 'accepted')
+        .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`),
+    ]);
 
     if (incomingError) {
-      console.error('fetchConnections: Erro ao buscar solicitações de conexão recebidas (raw):', incomingError);
+      console.error('fetchConnections: Erro ao buscar solicitações de conexão recebidas:', incomingError);
       toast.error('Erro ao carregar solicitações de conexão recebidas.');
-      return;
     }
-    console.log("fetchConnections: Solicitações pendentes recebidas (raw):", rawIncomingRequests);
+    if (sentError) {
+      console.error('fetchConnections: Erro ao buscar solicitações de conexão enviadas:', sentError);
+      toast.error('Erro ao carregar solicitações de conexão enviadas.');
+    }
+    if (acceptedError) {
+      console.error('fetchConnections: Erro ao buscar conexões aceitas:', acceptedError);
+      toast.error('Erro ao carregar conexões aceitas.');
+    }
 
-    // STEP 2: Fetch sender profiles for each incoming request
-    const mappedIncomingRequests: ConnectionRequest[] = await Promise.all(
-      rawIncomingRequests.map(async (req: any) => {
-        const { data: senderProfile, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills')
-          .eq('id', req.sender_id)
-          .single();
+    // 2. Collect all unique user IDs involved in these requests
+    const allRelatedUserIds = new Set<string>();
+    rawIncomingRequests?.forEach(req => allRelatedUserIds.add(req.sender_id));
+    rawSentRequests?.forEach(req => allRelatedUserIds.add(req.receiver_id));
+    rawAcceptedConns?.forEach(req => {
+      allRelatedUserIds.add(req.sender_id);
+      allRelatedUserIds.add(req.receiver_id);
+    });
+    allRelatedUserIds.delete(userId); // Remove current user's ID as their profile is already known
 
-        if (profileError) {
-          console.warn('fetchConnections: Não foi possível buscar o perfil do remetente para a solicitação:', req.id, profileError);
-          // Fallback to a generic user if profile not found
-          return {
-            id: req.id,
-            sender_id: req.sender_id,
-            receiver_id: req.receiver_id,
-            status: req.status,
-            interest_message: req.interest_message,
-            created_at: req.created_at,
-            user: { id: req.sender_id, name: 'Usuário Desconhecido', avatar: '', dob: '', city: '', email: '' },
-          };
-        }
+    const uniqueProfileIds = Array.from(allRelatedUserIds);
+    console.log("fetchConnections: IDs de perfis únicos a serem buscados:", uniqueProfileIds);
 
-        return {
-          id: req.id,
-          sender_id: req.sender_id,
-          receiver_id: req.receiver_id,
-          status: req.status,
-          interest_message: req.interest_message,
-          created_at: req.created_at,
-          user: {
-            id: senderProfile.id,
-            name: `${senderProfile.first_name || ''} ${senderProfile.last_name || ''}`.trim(),
-            avatar: senderProfile.avatar_url || `https://picsum.photos/seed/${senderProfile.id}/200/200`,
-            dob: senderProfile.dob || '',
-            city: senderProfile.city || '',
-            education: senderProfile.education || '',
-            softSkills: senderProfile.soft_skills || [],
-            hardSkills: senderProfile.hard_skills || [],
-            email: '',
-          },
-        };
-      })
-    );
+    // 3. Fetch all unique profiles in a single query
+    let profilesMap = new Map<string, User>();
+    if (uniqueProfileIds.length > 0) {
+      const { data: fetchedProfiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills')
+        .in('id', uniqueProfileIds);
+
+      if (profilesError) {
+        console.error('fetchConnections: Erro ao buscar perfis em lote:', profilesError);
+        toast.error('Erro ao carregar perfis de usuários relacionados.');
+      } else {
+        fetchedProfiles?.forEach((profile: any) => {
+          profilesMap.set(profile.id, {
+            id: profile.id,
+            name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
+            dob: profile.dob || '',
+            city: profile.city || '',
+            avatar: profile.avatar_url || `https://picsum.photos/seed/${profile.id}/200/200`,
+            education: profile.education || '',
+            softSkills: profile.soft_skills || [],
+            hardSkills: profile.hard_skills || [],
+            email: '', // Email is not in profiles table, will be empty
+          });
+        });
+        console.log("fetchConnections: Perfis em lote carregados e mapeados:", profilesMap);
+      }
+    }
+
+    // Helper to map raw request to ConnectionRequest with user profile
+    const mapRequestToConnection = (req: any, isSender: boolean): ConnectionRequest => {
+      const otherUserId = isSender ? req.receiver_id : req.sender_id;
+      const userProfile = profilesMap.get(otherUserId) || {
+        id: otherUserId,
+        name: 'Usuário Desconhecido',
+        avatar: '', dob: '', city: '', email: ''
+      };
+      return {
+        id: req.id,
+        sender_id: req.sender_id,
+        receiver_id: req.receiver_id,
+        status: req.status,
+        interest_message: req.interest_message,
+        created_at: req.created_at,
+        user: userProfile,
+      };
+    };
+
+    // 4. Map raw requests to state variables using the profilesMap
+    const mappedIncomingRequests: ConnectionRequest[] = rawIncomingRequests?.map(req => mapRequestToConnection(req, false)) || [];
     setConnections(mappedIncomingRequests);
     console.log("fetchConnections: Solicitações pendentes mapeadas e definidas no estado 'connections':", mappedIncomingRequests);
 
-
-    // Fetch sent pending requests (STEP 1: Fetch requests without join)
-    const { data: rawSentRequests, error: sentError } = await supabase
-      .from('connection_requests')
-      .select(`id, sender_id, receiver_id, status, interest_message, created_at`)
-      .eq('sender_id', userId)
-      .eq('status', 'pending');
-
-    if (sentError) {
-      console.error('fetchConnections: Erro ao buscar solicitações de conexão enviadas (raw):', sentError);
-      toast.error('Erro ao carregar solicitações de conexão enviadas.');
-      return;
-    }
-    console.log("fetchConnections: Solicitações enviadas recebidas (raw):", rawSentRequests);
-
-    // STEP 2: Fetch receiver profiles for each sent request
-    const mappedSentRequests: ConnectionRequest[] = await Promise.all(
-      rawSentRequests.map(async (req: any) => {
-        const { data: receiverProfile, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills')
-          .eq('id', req.receiver_id)
-          .single();
-
-        if (profileError) {
-          console.warn('fetchConnections: Não foi possível buscar o perfil do receptor para a solicitação enviada:', req.id, profileError);
-          return {
-            id: req.id,
-            sender_id: req.sender_id,
-            receiver_id: req.receiver_id,
-            status: req.status,
-            interest_message: req.interest_message,
-            created_at: req.created_at,
-            user: { id: req.receiver_id, name: 'Usuário Desconhecido', avatar: '', dob: '', city: '', email: '' },
-          };
-        }
-
-        return {
-          id: req.id,
-          sender_id: req.sender_id,
-          receiver_id: req.receiver_id,
-          status: req.status,
-          interest_message: req.interest_message,
-          created_at: req.created_at,
-          user: {
-            id: receiverProfile.id,
-            name: `${receiverProfile.first_name || ''} ${receiverProfile.last_name || ''}`.trim(),
-            avatar: receiverProfile.avatar_url || `https://picsum.photos/seed/${receiverProfile.id}/200/200`,
-            dob: receiverProfile.dob || '',
-            city: receiverProfile.city || '',
-            education: receiverProfile.education || '',
-            softSkills: receiverProfile.soft_skills || [],
-            hardSkills: receiverProfile.hard_skills || [],
-            email: '',
-          },
-        };
-      })
-    );
+    const mappedSentRequests: ConnectionRequest[] = rawSentRequests?.map(req => mapRequestToConnection(req, true)) || [];
     setSentConnectionRequests(mappedSentRequests);
     console.log("fetchConnections: Solicitações enviadas mapeadas e definidas no estado 'sentConnectionRequests':", mappedSentRequests);
 
-
-    // Fetch accepted connections
-    console.log(`fetchConnections: Buscando conexões aceitas para userId: ${userId}`);
-    const { data: rawAcceptedConns, error: acceptedError } = await supabase
-      .from('connection_requests')
-      .select(`id, sender_id, receiver_id, status, interest_message, created_at`)
-      .eq('status', 'accepted')
-      .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`);
-
-    if (acceptedError) {
-      console.error('fetchConnections: Erro ao buscar conexões aceitas (raw):', acceptedError);
-      toast.error('Erro ao carregar conexões aceitas.');
-      return;
-    }
-    console.log("fetchConnections: Conexões aceitas recebidas (raw):", rawAcceptedConns);
-
-
-    // STEP 2: Fetch other user profiles for each accepted connection
-    const mappedAcceptedConns: ConnectionRequest[] = await Promise.all(
-      rawAcceptedConns.map(async (req: any) => {
-        const otherUserId = req.sender_id === userId ? req.receiver_id : req.sender_id;
-        console.log(`fetchConnections: Buscando perfil para otherUserId: ${otherUserId} para conexão ${req.id}`);
-        const { data: otherProfile, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills')
-          .eq('id', otherUserId)
-          .single();
-
-        if (profileError) {
-          console.warn(`fetchConnections: Não foi possível buscar o perfil para otherUserId: ${otherUserId} (conexão ${req.id}):`, profileError);
-          return {
-            id: req.id,
-            sender_id: req.sender_id,
-            receiver_id: req.receiver_id,
-            status: req.status,
-            interest_message: req.interest_message,
-            created_at: req.created_at,
-            user: { id: otherUserId, name: 'Usuário Desconhecido', avatar: '', dob: '', city: '', email: '' },
-          };
-        }
-        console.log(`fetchConnections: Perfil encontrado para otherUserId: ${otherUserId}:`, otherProfile);
-
-        return {
-          id: req.id,
-          sender_id: req.sender_id,
-          receiver_id: req.receiver_id,
-          status: req.status,
-          interest_message: req.interest_message,
-          created_at: req.created_at,
-          user: {
-            id: otherProfile.id,
-            name: `${otherProfile.first_name || ''} ${otherProfile.last_name || ''}`.trim(),
-            avatar: otherProfile.avatar_url || `https://picsum.photos/seed/${otherProfile.id}/200/200`,
-            dob: otherProfile.dob || '',
-            city: otherProfile.city || '',
-            education: otherProfile.education || '',
-            softSkills: otherProfile.soft_skills || [],
-            hardSkills: otherProfile.hard_skills || [],
-            email: '',
-          },
-        };
-      })
-    );
+    const mappedAcceptedConns: ConnectionRequest[] = rawAcceptedConns?.map(req => mapRequestToConnection(req, req.sender_id === userId)) || [];
     setAcceptedConnections(mappedAcceptedConns);
     console.log("fetchConnections: Conexões aceitas mapeadas e definidas no estado 'acceptedConnections':", mappedAcceptedConns);
   }, []);
@@ -294,7 +216,7 @@ const App: React.FC = () => {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("onAuthStateChange: Evento:", event, "Sessão:", session);
       if (session) {
-        console.log('onAuthStateChange: Session existe, buscando perfil para user.id:', session.user.id); // Novo log
+        console.log('onAuthStateChange: Session existe, buscando perfil para user.id:', session.user.id);
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills')
@@ -308,12 +230,12 @@ const App: React.FC = () => {
           setCurrentUser(null);
           setAuthFlowScreen('initial');
           setHistory([Screen.Initial]);
-          console.log('onAuthStateChange: Erro na busca do perfil, isAuthenticated setado para false.'); // Novo log
+          console.log('onAuthStateChange: Erro na busca do perfil, isAuthenticated setado para false.');
           return;
         }
 
         if (profile) {
-          console.log('onAuthStateChange: Perfil encontrado:', profile); // Novo log
+          console.log('onAuthStateChange: Perfil encontrado:', profile);
           const user: User = {
             id: profile.id,
             name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
@@ -329,11 +251,14 @@ const App: React.FC = () => {
           setIsAuthenticated(true);
           setHistory([Screen.Home]);
           toast.success(`Bem-vindo(a), ${user.name}!`);
-          fetchConnections(user.id);
-          fetchAllUsers();
-          console.log('onAuthStateChange: Usuário autenticado e perfil carregado com sucesso.'); // Novo log
+          // Chamadas de fetchConnections e fetchAllUsers agora são aguardadas em paralelo
+          await Promise.all([
+            fetchConnections(user.id),
+            fetchAllUsers()
+          ]);
+          console.log('onAuthStateChange: Usuário autenticado e perfil carregado com sucesso.');
         } else {
-          console.warn('onAuthStateChange: Usuário Supabase autenticado, mas nenhum perfil encontrado no banco de dados.'); // Novo log
+          console.warn('onAuthStateChange: Usuário Supabase autenticado, mas nenhum perfil encontrado no banco de dados.');
           setIsAuthenticated(true);
           setCurrentUser({
             id: session.user.id,
@@ -342,9 +267,12 @@ const App: React.FC = () => {
           });
           setHistory([Screen.Home]);
           toast.warn('Seu perfil está incompleto. Por favor, edite-o.');
-          fetchConnections(session.user.id);
-          fetchAllUsers();
-          console.log('onAuthStateChange: Usuário autenticado, perfil genérico carregado.'); // Novo log
+          // Chamadas de fetchConnections e fetchAllUsers agora são aguardadas em paralelo
+          await Promise.all([
+            fetchConnections(session.user.id),
+            fetchAllUsers()
+          ]);
+          console.log('onAuthStateChange: Usuário autenticado, perfil genérico carregado.');
         }
       } else {
         console.log("onAuthStateChange: Usuário desautenticado.");
@@ -358,7 +286,7 @@ const App: React.FC = () => {
         setSentConnectionRequests([]);
         setAcceptedConnections([]);
         setChats([]);
-        console.log('onAuthStateChange: Usuário deslogado.'); // Novo log
+        console.log('onAuthStateChange: Usuário deslogado.');
       }
     });
 
