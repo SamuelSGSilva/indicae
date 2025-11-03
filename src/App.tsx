@@ -39,12 +39,13 @@ const App: React.FC = () => {
 
   // Function to fetch all user profiles from Supabase
   const fetchAllUsers = useCallback(async () => {
+    console.log("fetchAllUsers: Iniciando busca de todos os perfis de usuário.");
     const { data, error } = await supabase
       .from('profiles')
       .select('id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills');
 
     if (error) {
-      console.error('Error fetching all user profiles:', error);
+      console.error('fetchAllUsers: Erro ao buscar todos os perfis de usuário:', error);
       toast.error('Erro ao carregar usuários para busca.');
       return [];
     }
@@ -61,6 +62,7 @@ const App: React.FC = () => {
       email: '',
     }));
     setUsers(fetchedUsers);
+    console.log("fetchAllUsers: Perfis de usuário carregados:", fetchedUsers);
     return fetchedUsers;
   }, []);
 
@@ -76,7 +78,7 @@ const App: React.FC = () => {
       .eq('status', 'pending');
 
     if (incomingError) {
-      console.error('Error fetching raw incoming connection requests:', incomingError);
+      console.error('fetchConnections: Erro ao buscar solicitações de conexão recebidas (raw):', incomingError);
       toast.error('Erro ao carregar solicitações de conexão recebidas.');
       return;
     }
@@ -92,7 +94,7 @@ const App: React.FC = () => {
           .single();
 
         if (profileError) {
-          console.warn('Could not fetch sender profile for request:', req.id, profileError);
+          console.warn('fetchConnections: Não foi possível buscar o perfil do remetente para a solicitação:', req.id, profileError);
           // Fallback to a generic user if profile not found
           return {
             id: req.id,
@@ -127,7 +129,7 @@ const App: React.FC = () => {
       })
     );
     setConnections(mappedIncomingRequests);
-    console.log("fetchConnections: Solicitações pendentes mapeadas:", mappedIncomingRequests);
+    console.log("fetchConnections: Solicitações pendentes mapeadas e definidas no estado 'connections':", mappedIncomingRequests);
 
 
     // Fetch sent pending requests (STEP 1: Fetch requests without join)
@@ -138,7 +140,7 @@ const App: React.FC = () => {
       .eq('status', 'pending');
 
     if (sentError) {
-      console.error('Error fetching raw sent connection requests:', sentError);
+      console.error('fetchConnections: Erro ao buscar solicitações de conexão enviadas (raw):', sentError);
       toast.error('Erro ao carregar solicitações de conexão enviadas.');
       return;
     }
@@ -154,7 +156,7 @@ const App: React.FC = () => {
           .single();
 
         if (profileError) {
-          console.warn('Could not fetch receiver profile for sent request:', req.id, profileError);
+          console.warn('fetchConnections: Não foi possível buscar o perfil do receptor para a solicitação enviada:', req.id, profileError);
           return {
             id: req.id,
             sender_id: req.sender_id,
@@ -188,7 +190,7 @@ const App: React.FC = () => {
       })
     );
     setSentConnectionRequests(mappedSentRequests);
-    console.log("fetchConnections: Solicitações enviadas mapeadas:", mappedSentRequests);
+    console.log("fetchConnections: Solicitações enviadas mapeadas e definidas no estado 'sentConnectionRequests':", mappedSentRequests);
 
 
     // Fetch accepted connections
@@ -200,7 +202,7 @@ const App: React.FC = () => {
       .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`);
 
     if (acceptedError) {
-      console.error('Error fetching raw accepted connections:', acceptedError);
+      console.error('fetchConnections: Erro ao buscar conexões aceitas (raw):', acceptedError);
       toast.error('Erro ao carregar conexões aceitas.');
       return;
     }
@@ -211,6 +213,7 @@ const App: React.FC = () => {
     const mappedAcceptedConns: ConnectionRequest[] = await Promise.all(
       rawAcceptedConns.map(async (req: any) => {
         const otherUserId = req.sender_id === userId ? req.receiver_id : req.sender_id;
+        console.log(`fetchConnections: Buscando perfil para otherUserId: ${otherUserId} para conexão ${req.id}`);
         const { data: otherProfile, error: profileError } = await supabase
           .from('profiles')
           .select('id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills')
@@ -218,7 +221,7 @@ const App: React.FC = () => {
           .single();
 
         if (profileError) {
-          console.warn('Could not fetch other profile for accepted connection:', req.id, profileError);
+          console.warn(`fetchConnections: Não foi possível buscar o perfil para otherUserId: ${otherUserId} (conexão ${req.id}):`, profileError);
           return {
             id: req.id,
             sender_id: req.sender_id,
@@ -229,6 +232,7 @@ const App: React.FC = () => {
             user: { id: otherUserId, name: 'Usuário Desconhecido', avatar: '', dob: '', city: '', email: '' },
           };
         }
+        console.log(`fetchConnections: Perfil encontrado para otherUserId: ${otherUserId}:`, otherProfile);
 
         return {
           id: req.id,
@@ -252,7 +256,7 @@ const App: React.FC = () => {
       })
     );
     setAcceptedConnections(mappedAcceptedConns);
-    console.log("fetchConnections: Conexões aceitas mapeadas e definidas no estado:", mappedAcceptedConns);
+    console.log("fetchConnections: Conexões aceitas mapeadas e definidas no estado 'acceptedConnections':", mappedAcceptedConns);
   }, []);
 
   // Function to fetch messages for a specific chat partner
@@ -265,9 +269,10 @@ const App: React.FC = () => {
       .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('Error fetching messages:', error);
+      console.error('fetchMessages: Erro ao buscar mensagens:', error);
       return [];
     }
+    console.log(`fetchMessages: Mensagens brutas encontradas do Supabase:`, data);
 
     const mappedMessages: Message[] = data.map((msg: any) => ({
       id: msg.id,
@@ -276,13 +281,14 @@ const App: React.FC = () => {
       senderId: msg.sender_id,
       avatar: users.find(u => u.id === msg.sender_id)?.avatar || '', // Get sender's avatar from users state
     }));
-    console.log(`fetchMessages: Mensagens encontradas:`, mappedMessages);
+    console.log(`fetchMessages: Mensagens mapeadas para o estado:`, mappedMessages);
     return mappedMessages;
   }, [users]); // Depende de 'users' para pegar o avatar
 
   // Initialize DB and check auth state
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("onAuthStateChange: Evento:", event, "Sessão:", session);
       if (session) {
         const { data: profile, error } = await supabase
           .from('profiles')
@@ -291,7 +297,7 @@ const App: React.FC = () => {
           .single();
 
         if (error) {
-          console.error('Error fetching profile:', error);
+          console.error('onAuthStateChange: Erro ao buscar perfil:', error);
           toast.error('Erro ao carregar perfil.');
           setIsAuthenticated(false);
           setCurrentUser(null);
@@ -319,7 +325,7 @@ const App: React.FC = () => {
           fetchConnections(user.id);
           fetchAllUsers();
         } else {
-          console.warn('Supabase user authenticated but no profile found.');
+          console.warn('onAuthStateChange: Usuário Supabase autenticado, mas nenhum perfil encontrado.');
           setIsAuthenticated(true);
           setCurrentUser({
             id: session.user.id,
@@ -332,6 +338,7 @@ const App: React.FC = () => {
           fetchAllUsers();
         }
       } else {
+        console.log("onAuthStateChange: Usuário desautenticado.");
         setIsAuthenticated(false);
         setCurrentUser(null);
         setAuthFlowScreen('initial');
@@ -357,6 +364,7 @@ const App: React.FC = () => {
   // Effect to load real messages for accepted connections
   useEffect(() => {
     if (currentUser && acceptedConnections.length > 0 && users.length > 0) {
+      console.log("useEffect (loadAllChats): Iniciando carregamento de chats para conexões aceitas.");
       const loadAllChats = async () => {
         const chatThreads: ChatThread[] = [];
         for (const conn of acceptedConnections) {
@@ -369,10 +377,11 @@ const App: React.FC = () => {
           });
         }
         setChats(chatThreads);
-        console.log("Chats carregados do Supabase:", chatThreads);
+        console.log("useEffect (loadAllChats): Chats carregados do Supabase:", chatThreads);
       };
       loadAllChats();
     } else if (currentUser && acceptedConnections.length === 0) {
+      console.log("useEffect (loadAllChats): Nenhuma conexão aceita, limpando chats.");
       setChats([]); // No accepted connections, no chats
     }
   }, [currentUser, acceptedConnections, users, fetchMessages]);
@@ -380,9 +389,12 @@ const App: React.FC = () => {
 
   // Real-time subscription for new messages
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      console.log("Realtime: currentUser não disponível, pulando inscrição de mensagens.");
+      return;
+    }
 
-    console.log(`Subscribing to messages for user: ${currentUser.id}`);
+    console.log(`Realtime: Inscrevendo-se em mensagens para o usuário: ${currentUser.id}`);
     const channel = supabase
       .channel('messages_channel')
       .on(
@@ -394,13 +406,13 @@ const App: React.FC = () => {
           filter: `sender_id=eq.${currentUser.id}.or.receiver_id=eq.${currentUser.id}`,
         },
         (payload) => {
-          console.log('Realtime message received!', payload);
+          console.log('Realtime: Nova mensagem recebida!', payload);
           const newMessageData = payload.new as any;
           const sender = users.find(u => u.id === newMessageData.sender_id);
           const receiver = users.find(u => u.id === newMessageData.receiver_id);
 
           if (!sender || !receiver) {
-            console.warn('Sender or receiver profile not found for new message:', newMessageData);
+            console.warn('Realtime: Perfil do remetente ou destinatário não encontrado para nova mensagem:', newMessageData);
             return;
           }
 
@@ -414,6 +426,7 @@ const App: React.FC = () => {
             senderId: newMessageData.sender_id,
             avatar: (newMessageData.sender_id === currentUser.id ? currentUser.avatar : chatPartner.avatar) || '',
           };
+          console.log("Realtime: Objeto newMessage construído:", newMessage);
 
           setChats(prevChats => {
             const newChats = [...prevChats];
@@ -430,6 +443,7 @@ const App: React.FC = () => {
                 messages: [newMessage],
               });
             }
+            console.log("Realtime: Estado 'chats' após atualização:", newChats);
             return newChats;
           });
         }
@@ -437,36 +451,45 @@ const App: React.FC = () => {
       .subscribe();
 
     return () => {
-      console.log('Unsubscribing from messages channel.');
+      console.log('Realtime: Desinscrevendo-se do canal de mensagens.');
       supabase.removeChannel(channel);
     };
   }, [currentUser, users]); // Depende de currentUser e users para avatares e IDs
 
   const handleNavigate = (screen: Screen) => {
+    console.log("handleNavigate: Navegando para a tela:", screen);
     setViewingOtherUser(null);
     setChattingWith(null);
     setHistory(prev => [...prev, screen]);
   };
 
   const handleViewOtherUser = (user: User) => {
+    console.log("handleViewOtherUser: Visualizando perfil do usuário:", user.name);
     setViewingOtherUser(user);
   };
 
   const handleStartChat = (user: User) => {
+    console.log("handleStartChat: Iniciando chat com:", user.name);
     setChattingWith(user);
     handleNavigate(Screen.Chat);
   };
   
   const handleCreateProfile = () => {
+    console.log("handleCreateProfile: Navegando para a tela de criação de perfil.");
     handleNavigate(Screen.CreateProfile);
   }
   
   const handleBack = () => {
+    console.log("handleBack: Voltando na navegação.");
     if (viewingOtherUser) {
       setViewingOtherUser(null);
+      console.log("handleBack: Limpando viewingOtherUser.");
     } else if (history.length > 1) {
       setChattingWith(null);
       setHistory(prev => prev.slice(0, -1));
+      console.log("handleBack: Voltando para a tela anterior, histórico atual:", history.slice(0, -1));
+    } else {
+      console.log("handleBack: Não há mais telas para voltar.");
     }
   }
   
@@ -475,6 +498,7 @@ const App: React.FC = () => {
         toast.error('Usuário atual não encontrado para salvar o perfil.');
         return;
       }
+      console.log("handleSaveProfile: Tentando salvar perfil para:", updatedUser.name);
 
       try {
         const { error } = await supabase
@@ -493,16 +517,17 @@ const App: React.FC = () => {
           .eq('id', currentUser.id);
 
         if (error) {
-          console.error('Supabase Error updating profile:', error);
+          console.error('handleSaveProfile: Erro do Supabase ao atualizar perfil:', error);
           toast.error(`Erro ao salvar perfil: ${error.message}`);
         } else {
+          console.log('handleSaveProfile: Perfil salvo com sucesso no Supabase.');
           setCurrentUser(updatedUser);
           toast.success('Perfil salvo com sucesso!');
           handleBack();
           fetchAllUsers();
         }
       } catch (e: any) {
-        console.error('Unexpected error during profile update:', e);
+        console.error('handleSaveProfile: Erro inesperado ao salvar perfil:', e);
         toast.error(`Erro inesperado ao salvar perfil: ${e.message || 'Verifique o console.'}`);
       }
   };
@@ -524,6 +549,13 @@ const App: React.FC = () => {
         return;
     }
 
+    console.log('handleSendConnectionRequest: Tentando enviar solicitação de conexão com:', {
+      sender_id: currentUser.id,
+      receiver_id: receiverId,
+      interest_message: interestMessage,
+      status: 'pending',
+    });
+
     try {
       const { data, error } = await supabase
         .from('connection_requests')
@@ -537,9 +569,10 @@ const App: React.FC = () => {
         .single();
 
       if (error) {
-        console.error('Error sending connection request:', error);
+        console.error('handleSendConnectionRequest: Erro ao enviar solicitação de conexão:', error);
         toast.error(`Erro ao enviar solicitação de conexão: ${error.message}`);
       } else {
+        console.log('handleSendConnectionRequest: Solicitação de conexão enviada com sucesso:', data);
         toast.success('Solicitação de conexão enviada com sucesso!');
         if (data) {
             const receiverUser = users.find(u => u.id === receiverId);
@@ -554,7 +587,7 @@ const App: React.FC = () => {
         fetchConnections(currentUser.id);
       }
     } catch (e: any) {
-      console.error('Unexpected error during sending connection request:', e);
+      console.error('handleSendConnectionRequest: Erro inesperado ao enviar solicitação de conexão:', e);
       toast.error(`Erro inesperado ao enviar solicitação: ${e.message || 'Verifique o console.'}`);
     }
   };
@@ -563,19 +596,21 @@ const App: React.FC = () => {
       if (!currentUser) return;
 
       try {
+        console.log(`handleConnectionAction: Tentando ${action} conexão ${connectionId} para receiver_id ${currentUser.id}`);
         const { data, error } = await supabase
           .from('connection_requests')
           .update({ status: action })
           .eq('id', connectionId)
           .eq('receiver_id', currentUser.id)
-          .select();
+          .select(); // Adicionado .select() para obter os dados atualizados
 
         if (error) {
-          console.error(`Error ${action}ing connection:`, error);
+          console.error(`handleConnectionAction: Erro ao ${action} conexão:`, error);
           toast.error(`Erro ao ${action === 'accept' ? 'aceitar' : 'recusar'} conexão: ${error.message}`);
         } else {
+          console.log(`handleConnectionAction: Conexão ${action} com sucesso. Dados atualizados do Supabase:`, data);
           toast.success(`Conexão ${action === 'accept' ? 'aceita' : 'recusada'} com sucesso!`);
-          fetchConnections(currentUser.id);
+          await fetchConnections(currentUser.id); // Use await here to ensure state is updated before proceeding
 
           if (action === 'accept') {
             const acceptedConnection = connections.find(c => c.id === connectionId);
@@ -583,11 +618,12 @@ const App: React.FC = () => {
               // When a connection is accepted, we should also fetch existing messages for this new chat
               const messages = await fetchMessages(currentUser.id, acceptedConnection.user.id);
               setChats(prev => [...prev, { id: acceptedConnection.id, contact: acceptedConnection.user, messages: messages }]);
+              console.log("handleConnectionAction: Novo chat adicionado após aceitar conexão:", acceptedConnection.user.name);
             }
           }
         }
       } catch (e: any) {
-        console.error('Unexpected error during connection action:', e);
+        console.error('handleConnectionAction: Erro inesperado durante a ação de conexão:', e);
         toast.error(`Erro inesperado ao processar conexão: ${e.message || 'Verifique o console.'}`);
       }
   };
@@ -597,6 +633,7 @@ const App: React.FC = () => {
         toast.error('Você precisa estar logado para enviar mensagens.');
         return;
       }
+      console.log(`handleSendMessage: Tentando enviar mensagem para ${chatPartnerId}: "${text}"`);
 
       try {
         const { data, error } = await supabase
@@ -610,15 +647,15 @@ const App: React.FC = () => {
           .single();
 
         if (error) {
-          console.error('Error sending message:', error);
+          console.error('handleSendMessage: Erro ao enviar mensagem:', error);
           toast.error(`Erro ao enviar mensagem: ${error.message}`);
         } else {
-          console.log('Message sent successfully:', data);
+          console.log('handleSendMessage: Mensagem enviada com sucesso para Supabase:', data);
           // The real-time subscription will handle updating the state, so no need to manually update here.
           // toast.success('Mensagem enviada!'); // Optional: show toast for sent message
         }
       } catch (e: any) {
-        console.error('Unexpected error during sending message:', e);
+        console.error('handleSendMessage: Erro inesperado ao enviar mensagem:', e);
         toast.error(`Erro inesperado ao enviar mensagem: ${e.message || 'Verifique o console.'}`);
       }
   };
@@ -628,10 +665,13 @@ const App: React.FC = () => {
       toast.error('Por favor, insira a senha.');
       return;
     }
+    console.log("handleLogin: Tentando login para:", email);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
+      console.error("handleLogin: Erro de login:", error.message);
       toast.error(error.message);
     } else {
+      console.log("handleLogin: Login realizado com sucesso.");
       toast.success('Login realizado com sucesso!');
     }
   };
@@ -642,6 +682,7 @@ const App: React.FC = () => {
       toast.error('Por favor, insira a senha.');
       return;
     }
+    console.log("handleRegister: Tentando registrar usuário:", email);
 
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -657,18 +698,23 @@ const App: React.FC = () => {
     });
 
     if (error) {
+      console.error("handleRegister: Erro de registro:", error.message);
       toast.error(error.message);
     } else if (data.user) {
+      console.log("handleRegister: Registro realizado com sucesso, usuário:", data.user);
       toast.success('Cadastro realizado com sucesso! Verifique seu email para confirmar a conta.');
       setAuthFlowScreen('login');
     }
   };
 
   const handleLogout = async () => {
+    console.log("handleLogout: Tentando fazer logout.");
     const { error } = await supabase.auth.signOut();
     if (error) {
+      console.error("handleLogout: Erro ao fazer logout:", error.message);
       toast.error('Erro ao fazer logout.');
     } else {
+      console.log("handleLogout: Logout realizado com sucesso.");
       toast.success('Logout realizado com sucesso!');
       setHistory([Screen.Initial]);
     }

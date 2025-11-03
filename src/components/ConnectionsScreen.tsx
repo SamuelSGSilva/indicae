@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'; // Adicionado useEffect
+import React, { useState, useEffect } from 'react';
 import { ConnectionRequest, User } from '../types';
 import { icons } from '../constants';
 
@@ -47,12 +47,15 @@ const ConnectionsScreen: React.FC<ConnectionsScreenProps> = ({ connections, acce
   const [activeTab, setActiveTab] = useState<'requests' | 'connected'>('requests');
 
   useEffect(() => {
-    console.log("ConnectionsScreen: acceptedConnections prop recebida:", acceptedConnections);
-  }, [acceptedConnections]);
+    console.log("ConnectionsScreen: Prop 'connections' (solicitações pendentes) recebida:", connections);
+    console.log("ConnectionsScreen: Prop 'acceptedConnections' (conexões aceitas) recebida:", acceptedConnections);
+  }, [connections, acceptedConnections]);
 
   const filteredRequests = connections.filter(c => c.user.name.toLowerCase().includes(query.toLowerCase()));
   const filteredConnectedUsers = acceptedConnections.filter(c => c.user.name.toLowerCase().includes(query.toLowerCase()));
   
+  console.log("ConnectionsScreen: Usuários conectados filtrados:", filteredConnectedUsers);
+
   return (
     <div className="w-full min-h-full bg-[#0B1526] flex flex-col">
       <header className="p-4 flex justify-between items-center flex-shrink-0">
