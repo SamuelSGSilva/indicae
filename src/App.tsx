@@ -610,11 +610,17 @@ const App: React.FC = () => {
 
         if (error) {
           console.error(`handleConnectionAction: Erro ao ${action} conexão:`, error);
-          // Adicionando logs mais detalhados do erro do Supabase
           if (error.details) console.error('Supabase Error Details:', error.details);
           if (error.hint) console.error('Supabase Error Hint:', error.hint);
           toast.error(`Erro ao ${action === 'accept' ? 'aceitar' : 'recusar'} conexão: ${error.message}`);
         } else {
+          // Verifica se alguma linha foi realmente atualizada
+          if (!data || data.length === 0) {
+            console.warn(`handleConnectionAction: Nenhuma conexão encontrada ou atualizada para id ${connectionId} e receiver_id ${currentUser.id}.`);
+            toast.error('Não foi possível encontrar ou atualizar a solicitação de conexão. Verifique se você é o destinatário.');
+            return; // Sai da função se nenhuma linha foi atualizada
+          }
+
           console.log(`handleConnectionAction: Conexão ${action} com sucesso. Dados atualizados do Supabase:`, data);
           toast.success(`Conexão ${action === 'accept' ? 'aceita' : 'recusada'} com sucesso!`);
           await fetchConnections(currentUser.id); // Use await here to ensure state is updated before proceeding
