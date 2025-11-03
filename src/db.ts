@@ -6,7 +6,7 @@ const DB_KEY = 'indicai_db';
 interface AppDB {
     users: User[];
     connections: ConnectionRequest[];
-    chats: ChatThread[];
+    chats: ChatThread[]; // Keep for structure, but will be populated from Supabase
     currentUserId: string | null; // Alterado para string | null
 }
 
@@ -16,13 +16,7 @@ let _cachedDB: AppDB | null = null;
 const createInitialDB = (): AppDB => ({
     users: [...MOCK_USERS], // Keep mock users for search/connections for now
     connections: [...MOCK_CONNECTIONS],
-    chats: [
-        {
-            id: "chat-1", // ID de chat mockado como string
-            contact: MOCK_USERS.find(u => u.id === "10")!, // ID do usuário mockado como string
-            messages: [...MOCK_CHAT_MESSAGES],
-        },
-    ],
+    chats: [], // Chats will now be populated from Supabase
     currentUserId: null, // Supabase will manage this
 });
 
@@ -94,36 +88,17 @@ export const db = {
         const connection = state.connections.find(c => c.id === connectionId);
 
         if (action === 'accept' && connection) {
-             const chatExists = state.chats.some(c => c.contact.id === connection.user.id);
-             if (!chatExists) {
-                 state.chats.push({
-                     id: Date.now().toString(), // ID de chat como string
-                     contact: connection.user,
-                     messages: []
-                 });
-             }
+             // Chat creation is now handled by App.tsx after Supabase connection acceptance
         }
         
         state.connections = state.connections.filter(c => c.id !== connectionId);
         writeDB(state);
     },
 
-    addMessage: (chatPartnerId: string, message: Message) => { // chatPartnerId como string
-        const state = readDB();
-        const chat = state.chats.find(c => c.contact.id === chatPartnerId);
-
-        if (chat) {
-            chat.messages.push(message);
-        } else {
-             const partner = state.users.find(u => u.id === chatPartnerId);
-             if (partner) {
-                 state.chats.push({
-                     id: Date.now().toString(), // ID de chat como string
-                     contact: partner,
-                     messages: [message],
-                 });
-             }
-        }
-        writeDB(state);
+    // addMessage is now handled by Supabase in App.tsx
+    addMessage: (chatPartnerId: string, message: Message) => {
+        // This function is no longer used for real messages, as they are sent to Supabase.
+        // The real-time subscription will update the UI.
+        console.warn('db.addMessage called, but real messages are handled by Supabase.');
     },
 };

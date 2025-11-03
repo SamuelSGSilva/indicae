@@ -200,7 +200,7 @@ const App: React.FC = () => {
       .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`);
 
     if (acceptedError) {
-      console.error('fetchConnections: Erro ao buscar conexões aceitas (raw):', acceptedError);
+      console.error('Error fetching raw accepted connections:', acceptedError);
       toast.error('Erro ao carregar conexões aceitas.');
       return;
     }
@@ -211,7 +211,6 @@ const App: React.FC = () => {
     const mappedAcceptedConns: ConnectionRequest[] = await Promise.all(
       rawAcceptedConns.map(async (req: any) => {
         const otherUserId = req.sender_id === userId ? req.receiver_id : req.sender_id;
-        console.log(`fetchConnections: Buscando perfil para otherUserId: ${otherUserId} para conexão ${req.id}`);
         const { data: otherProfile, error: profileError } = await supabase
           .from('profiles')
           .select('id, first_name, last_name, avatar_url, dob, city, education, soft_skills, hard_skills')
@@ -219,7 +218,7 @@ const App: React.FC = () => {
           .single();
 
         if (profileError) {
-          console.warn(`fetchConnections: Não foi possível buscar o perfil para otherUserId: ${otherUserId} (conexão ${req.id}):`, profileError);
+          console.warn('Could not fetch other profile for accepted connection:', req.id, profileError);
           return {
             id: req.id,
             sender_id: req.sender_id,
@@ -230,7 +229,6 @@ const App: React.FC = () => {
             user: { id: otherUserId, name: 'Usuário Desconhecido', avatar: '', dob: '', city: '', email: '' },
           };
         }
-        console.log(`fetchConnections: Perfil encontrado para otherUserId: ${otherUserId}:`, otherProfile);
 
         return {
           id: req.id,
@@ -256,6 +254,31 @@ const App: React.FC = () => {
     setAcceptedConnections(mappedAcceptedConns);
     console.log("fetchConnections: Conexões aceitas mapeadas e definidas no estado:", mappedAcceptedConns);
   }, []);
+
+  // Function to fetch messages for a specific chat partner
+  const fetchMessages = useCallback(async (currentUserId: string, chatPartnerId: string) => {
+    console.log(`fetchMessages: Buscando mensagens entre ${currentUserId} e ${chatPartnerId}`);
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .or(`and(sender_id.eq.${currentUserId},receiver_id.eq.${chatPartnerId}),and(sender_id.eq.${chatPartnerId},receiver_id.eq.${currentUserId})`)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching messages:', error);
+      return [];
+    }
+
+    const mappedMessages: Message[] = data.map((msg: any) => ({
+      id: msg.id,
+      text: msg.content,
+      time: new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      senderId: msg.sender_id,
+      avatar: users.find(u => u.id === msg.sender_id)?.avatar || '', // Get sender's avatar from users state
+    }));
+    console.log(`fetchMessages: Mensagens encontradas:`, mappedMessages);
+    return mappedMessages;
+  }, [users]); // Depende de 'users' para pegar o avatar
 
   // Initialize DB and check auth state
   useEffect(() => {
@@ -318,16 +341,106 @@ const App: React.FC = () => {
         setUsers([]);
         setSentConnectionRequests([]);
         setAcceptedConnections([]);
+        setChats([]); // Clear chats on logout
       }
     });
 
+    // The local db.initialize() is still used for mock chats, but real messages will override/supplement
     const data = db.initialize();
-    setChats(data.chats);
+    // setChats(data.chats); // We will populate chats from Supabase now
 
     return () => {
       authListener.subscription.unsubscribe();
     };
   }, [fetchConnections, fetchAllUsers]);
+
+  // Effect to load real messages for accepted connections
+  useEffect(() => {
+    if (currentUser && acceptedConnections.length > 0 && users.length > 0) {
+      const loadAllChats = async () => {
+        const chatThreads: ChatThread[] = [];
+        for (const conn of acceptedConnections) {
+          const chatPartner = conn.user;
+          const messages = await fetchMessages(currentUser.id, chatPartner.id);
+          chatThreads.push({
+            id: conn.id, // Using connection ID as chat thread ID for simplicity
+            contact: chatPartner,
+            messages: messages,
+          });
+        }
+        setChats(chatThreads);
+        console.log("Chats carregados do Supabase:", chatThreads);
+      };
+      loadAllChats();
+    } else if (currentUser && acceptedConnections.length === 0) {
+      setChats([]); // No accepted connections, no chats
+    }
+  }, [currentUser, acceptedConnections, users, fetchMessages]);
+
+
+  // Real-time subscription for new messages
+  useEffect(() => {
+    if (!currentUser) return;
+
+    console.log(`Subscribing to messages for user: ${currentUser.id}`);
+    const channel = supabase
+      .channel('messages_channel')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `sender_id=eq.${currentUser.id}.or.receiver_id=eq.${currentUser.id}`,
+        },
+        (payload) => {
+          console.log('Realtime message received!', payload);
+          const newMessageData = payload.new as any;
+          const sender = users.find(u => u.id === newMessageData.sender_id);
+          const receiver = users.find(u => u.id === newMessageData.receiver_id);
+
+          if (!sender || !receiver) {
+            console.warn('Sender or receiver profile not found for new message:', newMessageData);
+            return;
+          }
+
+          const chatPartnerId = newMessageData.sender_id === currentUser.id ? newMessageData.receiver_id : newMessageData.sender_id;
+          const chatPartner = chatPartnerId === sender.id ? sender : receiver;
+
+          const newMessage: Message = {
+            id: newMessageData.id,
+            text: newMessageData.content,
+            time: new Date(newMessageData.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            senderId: newMessageData.sender_id,
+            avatar: (newMessageData.sender_id === currentUser.id ? currentUser.avatar : chatPartner.avatar) || '',
+          };
+
+          setChats(prevChats => {
+            const newChats = [...prevChats];
+            const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
+
+            if (chatIndex > -1) {
+              // Update existing chat thread
+              newChats[chatIndex].messages = [...newChats[chatIndex].messages, newMessage];
+            } else {
+              // Create new chat thread if it doesn't exist (e.g., first message)
+              newChats.push({
+                id: chatPartnerId, // Use partner ID as chat ID for simplicity
+                contact: chatPartner,
+                messages: [newMessage],
+              });
+            }
+            return newChats;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('Unsubscribing from messages channel.');
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser, users]); // Depende de currentUser e users para avatares e IDs
 
   const handleNavigate = (screen: Screen) => {
     setViewingOtherUser(null);
@@ -411,13 +524,6 @@ const App: React.FC = () => {
         return;
     }
 
-    console.log('handleSendConnectionRequest: Attempting to send connection request with:', {
-      sender_id: currentUser.id,
-      receiver_id: receiverId,
-      interest_message: interestMessage,
-      status: 'pending',
-    });
-
     try {
       const { data, error } = await supabase
         .from('connection_requests')
@@ -431,10 +537,9 @@ const App: React.FC = () => {
         .single();
 
       if (error) {
-        console.error('handleSendConnectionRequest: Error sending connection request:', error);
+        console.error('Error sending connection request:', error);
         toast.error(`Erro ao enviar solicitação de conexão: ${error.message}`);
       } else {
-        console.log('handleSendConnectionRequest: Connection request sent successfully:', data);
         toast.success('Solicitação de conexão enviada com sucesso!');
         if (data) {
             const receiverUser = users.find(u => u.id === receiverId);
@@ -449,7 +554,7 @@ const App: React.FC = () => {
         fetchConnections(currentUser.id);
       }
     } catch (e: any) {
-      console.error('handleSendConnectionRequest: Unexpected error during sending connection request:', e);
+      console.error('Unexpected error during sending connection request:', e);
       toast.error(`Erro inesperado ao enviar solicitação: ${e.message || 'Verifique o console.'}`);
     }
   };
@@ -458,62 +563,64 @@ const App: React.FC = () => {
       if (!currentUser) return;
 
       try {
-        console.log(`handleConnectionAction: Tentando ${action} conexão ${connectionId} para receiver_id ${currentUser.id}`);
         const { data, error } = await supabase
           .from('connection_requests')
           .update({ status: action })
           .eq('id', connectionId)
           .eq('receiver_id', currentUser.id)
-          .select(); // Adicionado .select() para obter os dados atualizados
+          .select();
 
         if (error) {
-          console.error(`handleConnectionAction: Erro ao ${action} conexão:`, error);
+          console.error(`Error ${action}ing connection:`, error);
           toast.error(`Erro ao ${action === 'accept' ? 'aceitar' : 'recusar'} conexão: ${error.message}`);
         } else {
-          console.log(`handleConnectionAction: Conexão ${action} com sucesso. Dados atualizados do Supabase:`, data); // Added log here
           toast.success(`Conexão ${action === 'accept' ? 'aceita' : 'recusada'} com sucesso!`);
           fetchConnections(currentUser.id);
 
           if (action === 'accept') {
             const acceptedConnection = connections.find(c => c.id === connectionId);
             if (acceptedConnection && !chats.some(c => c.contact.id === acceptedConnection.user.id)) {
-              setChats(prev => [...prev, { id: Date.now().toString(), contact: acceptedConnection.user, messages: [] }]);
+              // When a connection is accepted, we should also fetch existing messages for this new chat
+              const messages = await fetchMessages(currentUser.id, acceptedConnection.user.id);
+              setChats(prev => [...prev, { id: acceptedConnection.id, contact: acceptedConnection.user, messages: messages }]);
             }
           }
         }
       } catch (e: any) {
-        console.error('handleConnectionAction: Erro inesperado durante a ação de conexão:', e);
+        console.error('Unexpected error during connection action:', e);
         toast.error(`Erro inesperado ao processar conexão: ${e.message || 'Verifique o console.'}`);
       }
   };
   
-  const handleSendMessage = (chatPartnerId: string, text: string) => {
-      if (!currentUser) return;
+  const handleSendMessage = async (chatPartnerId: string, text: string) => {
+      if (!currentUser) {
+        toast.error('Você precisa estar logado para enviar mensagens.');
+        return;
+      }
 
-      const newId = Date.now().toString();
-      const newMessage: Message = {
-          id: newId,
-          text,
-          time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-          senderId: currentUser.id,
-          avatar: currentUser.avatar
-      };
-      
-      db.addMessage(chatPartnerId, newMessage);
-      
-      setChats(prevChats => {
-          const newChats = [...prevChats];
-          const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
-          if (chatIndex > -1) {
-              newChats[chatIndex].messages = [...newChats[chatIndex].messages, newMessage];
-          } else {
-              const partner = users.find(u => u.id === chatPartnerId);
-              if (partner) {
-                newChats.push({ id: newId, contact: partner, messages: [newMessage] });
-              }
-          }
-          return newChats;
-      });
+      try {
+        const { data, error } = await supabase
+          .from('messages')
+          .insert({
+            sender_id: currentUser.id,
+            receiver_id: chatPartnerId,
+            content: text,
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error sending message:', error);
+          toast.error(`Erro ao enviar mensagem: ${error.message}`);
+        } else {
+          console.log('Message sent successfully:', data);
+          // The real-time subscription will handle updating the state, so no need to manually update here.
+          // toast.success('Mensagem enviada!'); // Optional: show toast for sent message
+        }
+      } catch (e: any) {
+        console.error('Unexpected error during sending message:', e);
+        toast.error(`Erro inesperado ao enviar mensagem: ${e.message || 'Verifique o console.'}`);
+      }
   };
 
   const handleLogin = async (email: string, password?: string) => {

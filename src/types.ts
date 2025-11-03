@@ -39,7 +39,7 @@ export interface Message {
   text: string;
   time: string;
   senderId: string; // Alterado de number para string
-  avatar: string;
+  avatar?: string; // Tornando o avatar opcional
 }
 
 export interface ChatThread {
