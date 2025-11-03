@@ -21,7 +21,10 @@ import ToastProvider from './components/ToastProvider';
 import { supabase } from './integrations/supabase/client';
 import toast from 'react-hot-toast';
 
+console.log("App.tsx: Componente App carregado no arquivo."); // Log de carregamento do arquivo
+
 const App: React.FC = () => {
+  console.log("App component rendering..."); // Log de início da renderização do componente
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [authFlowScreen, setAuthFlowScreen] = useState<'initial' | 'login' | 'register'>('initial');
   const [history, setHistory] = useState<Screen[]>([Screen.Initial]);
@@ -287,6 +290,7 @@ const App: React.FC = () => {
 
   // Initialize DB and check auth state
   useEffect(() => {
+    console.log("App useEffect: Inicializando listener de autenticação e buscas de dados."); // Log de início do useEffect
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("onAuthStateChange: Evento:", event, "Sessão:", session);
       if (session) {
@@ -357,6 +361,7 @@ const App: React.FC = () => {
     // setChats(data.chats); // We will populate chats from Supabase now
 
     return () => {
+      console.log('Realtime: Desinscrevendo-se do canal de mensagens.');
       authListener.subscription.unsubscribe();
     };
   }, [fetchConnections, fetchAllUsers]);
@@ -610,6 +615,7 @@ const App: React.FC = () => {
 
         if (error) {
           console.error(`handleConnectionAction: Erro ao ${action} conexão:`, error);
+          // Adicionando logs mais detalhados do erro do Supabase
           if (error.details) console.error('Supabase Error Details:', error.details);
           if (error.hint) console.error('Supabase Error Hint:', error.hint);
           toast.error(`Erro ao ${action === 'accept' ? 'aceitar' : 'recusar'} conexão: ${error.message}`);
