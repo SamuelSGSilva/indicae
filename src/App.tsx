@@ -593,7 +593,11 @@ const App: React.FC = () => {
   };
 
   const handleConnectionAction = async (connectionId: string, action: 'accept' | 'reject') => {
-      if (!currentUser) return;
+      if (!currentUser) {
+        console.error('handleConnectionAction: currentUser não definido.');
+        toast.error('Usuário não autenticado.');
+        return;
+      }
 
       try {
         console.log(`handleConnectionAction: Tentando ${action} conexão ${connectionId} para receiver_id ${currentUser.id}`);
@@ -606,6 +610,9 @@ const App: React.FC = () => {
 
         if (error) {
           console.error(`handleConnectionAction: Erro ao ${action} conexão:`, error);
+          // Adicionando logs mais detalhados do erro do Supabase
+          if (error.details) console.error('Supabase Error Details:', error.details);
+          if (error.hint) console.error('Supabase Error Hint:', error.hint);
           toast.error(`Erro ao ${action === 'accept' ? 'aceitar' : 'recusar'} conexão: ${error.message}`);
         } else {
           console.log(`handleConnectionAction: Conexão ${action} com sucesso. Dados atualizados do Supabase:`, data);
