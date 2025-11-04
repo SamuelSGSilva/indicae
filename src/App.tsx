@@ -208,7 +208,7 @@ const App: React.FC = () => {
     }));
     console.log(`fetchMessages: Mensagens mapeadas para o estado:`, mappedMessages);
     return mappedMessages;
-  }, [users]); // Depende de 'users' para pegar o avatar
+  }, [users]);
 
   // Initialize DB and check auth state
   useEffect(() => {
@@ -251,7 +251,6 @@ const App: React.FC = () => {
           setIsAuthenticated(true);
           setHistory([Screen.Home]);
           toast.success(`Bem-vindo(a), ${user.name}!`);
-          // Chamadas de fetchConnections e fetchAllUsers agora são aguardadas em paralelo
           await Promise.all([
             fetchConnections(user.id),
             fetchAllUsers()
@@ -267,7 +266,6 @@ const App: React.FC = () => {
           });
           setHistory([Screen.Home]);
           toast.warn('Seu perfil está incompleto. Por favor, edite-o.');
-          // Chamadas de fetchConnections e fetchAllUsers agora são aguardadas em paralelo
           await Promise.all([
             fetchConnections(session.user.id),
             fetchAllUsers()
@@ -391,7 +389,47 @@ const App: React.FC = () => {
       console.log('Realtime: Desinscrevendo-se do canal de mensagens.');
       supabase.removeChannel(channel);
     };
-  }, [currentUser, users]); // Depende de currentUser e users para avatares e IDs
+  }, [currentUser, users]);
+
+  // Real-time subscription for connection updates
+  useEffect(() => {
+    if (!currentUser) {
+      console.log("Realtime: currentUser não disponível, pulando inscrição de conexões.");
+      return;
+    }
+
+    console.log(`Realtime: Inscrevendo-se em atualizações de conexões para o usuário: ${currentUser.id}`);
+    const connectionsChannel = supabase
+      .channel('connection_requests_channel')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'connection_requests',
+          filter: `sender_id=eq.${currentUser.id}`, // Ouve atualizações em solicitações que ENVIEI
+        },
+        async (payload) => {
+          console.log('Realtime: Atualização de status de conexão recebida!', payload);
+          const updatedRequest = payload.new as any;
+
+          if (updatedRequest.status === 'accepted' && updatedRequest.sender_id === currentUser.id) {
+            const acceptor = users.find(u => u.id === updatedRequest.receiver_id);
+            const acceptorName = acceptor ? acceptor.name : 'Alguém';
+            toast.success(`${acceptorName} aceitou sua solicitação de conexão!`);
+
+            // Refetch all connection data to ensure UI is up-to-date
+            await fetchConnections(currentUser.id);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('Realtime: Desinscrevendo-se do canal de atualizações de conexões.');
+      supabase.removeChannel(connectionsChannel);
+    };
+  }, [currentUser, users, fetchConnections]);
 
   const handleNavigate = (screen: Screen) => {
     console.log("handleNavigate: Navegando para a tela:", screen);
@@ -400,10 +438,10 @@ const App: React.FC = () => {
     setHistory(prev => [...prev, screen]);
   };
 
-  const handleViewOtherUser = (user: User) => {
+  const handleViewOtherUser = useCallback((user: User) => {
     console.log("handleViewOtherUser: Visualizando perfil do usuário:", user.name);
     setViewingOtherUser(user);
-  };
+  }, []);
 
   const handleStartChat = (user: User) => {
     console.log("handleStartChat: Iniciando chat com:", user.name);

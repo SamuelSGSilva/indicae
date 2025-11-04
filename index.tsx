@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import Index from './src/pages/Index'; // Caminho corrigido
+import App from './src/App';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -10,6 +10,6 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <Index />
+    <App />
   </React.StrictMode>
 );
