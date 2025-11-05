@@ -27,34 +27,30 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ currentUser, onNavigate }) => {
           <p className="text-gray-400">{currentUser.city}</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 w-full max-w-xs">
+        <div className="w-full max-w-xs space-y-4">
           <button
             onClick={() => onNavigate(Screen.Search)}
-            className="flex flex-col items-center justify-center bg-[#0d1b2a] p-4 rounded-lg shadow-lg hover:bg-teal-600 transition-colors"
+            className="w-full bg-teal-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:bg-teal-700 transition-transform transform hover:scale-105"
           >
-            {icons.search('w-10 h-10 text-white mb-2')}
-            <span className="text-sm font-semibold">Buscar Pessoas</span>
+            Buscar Pessoas
           </button>
           <button
             onClick={() => onNavigate(Screen.SkillSearch)}
-            className="flex flex-col items-center justify-center bg-[#0d1b2a] p-4 rounded-lg shadow-lg hover:bg-teal-600 transition-colors"
+            className="w-full bg-teal-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:bg-teal-700 transition-transform transform hover:scale-105"
           >
-            {icons.code('w-10 h-10 text-white mb-2')}
-            <span className="text-sm font-semibold">Buscar por Skills</span>
+            Buscar por Skills
           </button>
           <button
             onClick={() => onNavigate(Screen.Connections)}
-            className="flex flex-col items-center justify-center bg-[#0d1b2a] p-4 rounded-lg shadow-lg hover:bg-teal-600 transition-colors"
+            className="w-full bg-teal-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:bg-teal-700 transition-transform transform hover:scale-105"
           >
-            {icons.connections('w-10 h-10 text-white mb-2')}
-            <span className="text-sm font-semibold">Minhas Conexões</span>
+            Minhas Conexões
           </button>
           <button
             onClick={() => onNavigate(Screen.Messages)}
-            className="flex flex-col items-center justify-center bg-[#0d1b2a] p-4 rounded-lg shadow-lg hover:bg-teal-600 transition-colors"
+            className="w-full bg-teal-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:bg-teal-700 transition-transform transform hover:scale-105"
           >
-            {icons.messages('w-10 h-10 text-white mb-2')}
-            <span className="text-sm font-semibold">Mensagens</span>
+            Mensagens
           </button>
         </div>
       </main>
