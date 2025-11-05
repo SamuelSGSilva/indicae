@@ -12,7 +12,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ currentUser, onNavigate }) => {
       {/* Header */}
       <header className="p-4 flex justify-between items-center flex-shrink-0">
         <h1 className="text-xl font-bold">Início</h1>
-        <span className="text-xl font-bold text-teal-400">Indicai</span>
+        <span className="text-xl font-bold text-teal-400">Indicae</span>
       </header>
 
       {/* Main Content */}

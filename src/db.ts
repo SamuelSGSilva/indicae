@@ -1,6 +1,6 @@
 import { User, ConnectionRequest, ChatThread } from './types'; // Caminho atualizado
 
-const DB_KEY = 'indicai_db';
+const DB_KEY = 'indicae_db';
 
 interface AppDB {
     users: User[];
