@@ -347,6 +347,14 @@ const App: React.FC = () => {
         (payload) => {
           console.log('Realtime: Nova mensagem recebida!', payload);
           const newMessageData = payload.new as any;
+
+          // IMPORTANT: If the message was sent by the current user, we ignore this real-time event.
+          // The handleSendMessage function already updated the state with the real message.
+          if (newMessageData.sender_id === currentUser.id) {
+            console.log("Realtime: Mensagem enviada pelo usuário atual, ignorando evento de tempo real para evitar duplicação.");
+            return;
+          }
+
           const sender = users.find(u => u.id === newMessageData.sender_id);
           const receiver = users.find(u => u.id === newMessageData.receiver_id);
 
@@ -373,26 +381,14 @@ const App: React.FC = () => {
 
             if (chatIndex > -1) {
               let messagesInThread = newChats[chatIndex].messages;
-              let updatedMessages = [...messagesInThread]; // Start with a fresh copy
-
-              // 1. Remove any optimistic message that matches the incoming real message
-              // This handles cases where the optimistic message might still be there.
-              updatedMessages = updatedMessages.filter(msg =>
-                !(msg.id.startsWith('temp-') &&
-                  msg.senderId === realMessage.senderId &&
-                  msg.text.trim() === realMessage.text.trim()) // Robust text comparison
-              );
-              console.log("Realtime: Após filtrar otimistas, mensagens:", updatedMessages);
-
-              // 2. Add the real message if it's not already present (by its actual Supabase ID)
-              if (!updatedMessages.some(msg => msg.id === realMessage.id)) {
-                updatedMessages.push(realMessage);
+              
+              // Add the real message if it's not already present (by its actual Supabase ID)
+              if (!messagesInThread.some(msg => msg.id === realMessage.id)) {
+                newChats[chatIndex].messages = [...messagesInThread, realMessage];
                 console.log("Realtime: Mensagem real adicionada:", realMessage);
               } else {
                 console.log("Realtime: Mensagem real já existe, ignorando duplicação:", realMessage);
               }
-              newChats[chatIndex].messages = updatedMessages;
-
             } else {
               // Create a new chat if it doesn't exist (e.g., first message from a new contact)
               newChats.push({
@@ -697,8 +693,31 @@ const App: React.FC = () => {
           });
         } else {
           console.log('handleSendMessage: Mensagem enviada com sucesso para Supabase:', data);
-          // REMOVIDO: A substituição explícita da mensagem otimista aqui.
-          // O listener de tempo real agora é o único responsável por isso.
+          // Explicitly replace the optimistic message with the real one here
+          setChats(prevChats => {
+              const newChats = [...prevChats];
+              const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
+              if (chatIndex > -1) {
+                  const messagesInThread = newChats[chatIndex].messages;
+                  const optimisticIndex = messagesInThread.findIndex(msg => msg.id === tempMessageId);
+                  if (optimisticIndex > -1) {
+                      const realMessage: Message = {
+                          id: data.id, // Use the real ID from Supabase
+                          text: data.content,
+                          time: new Date(data.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                          senderId: data.sender_id,
+                          avatar: currentUser.avatar,
+                      };
+                      newChats[chatIndex].messages = [
+                          ...messagesInThread.slice(0, optimisticIndex),
+                          realMessage,
+                          ...messagesInThread.slice(optimisticIndex + 1)
+                      ];
+                      console.log("handleSendMessage: Mensagem otimista substituída diretamente após sucesso do insert.");
+                  }
+              }
+              return newChats;
+          });
         }
       } catch (e: any) {
         console.error('handleSendMessage: Erro inesperado ao enviar mensagem:', e);
