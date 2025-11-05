@@ -371,25 +371,20 @@ const App: React.FC = () => {
             const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
 
             if (chatIndex > -1) {
-              const messagesInThread = newChats[chatIndex].messages;
-              // Check if an optimistic message exists that matches the content and sender
-              // This is a heuristic to find the optimistic message to replace
-              const optimisticMessageIndex = messagesInThread.findIndex(msg => 
-                msg.senderId === realMessage.senderId && 
-                msg.text === realMessage.text && 
-                msg.id.startsWith('temp-')
+              let messagesInThread = newChats[chatIndex].messages;
+
+              // 1. Filter out any optimistic message that matches the content and sender of the real message
+              // This is a heuristic to remove the temporary message that corresponds to the real one
+              messagesInThread = messagesInThread.filter(msg =>
+                !(msg.id.startsWith('temp-') && msg.senderId === realMessage.senderId && msg.text === realMessage.text)
               );
 
-              if (optimisticMessageIndex > -1) {
-                // Replace the optimistic message with the real one
-                messagesInThread[optimisticMessageIndex] = realMessage;
-                console.log("Realtime: Mensagem otimista substituída pela real:", realMessage);
-              } else if (!messagesInThread.some(msg => msg.id === realMessage.id)) {
-                // If no optimistic message to replace, and it's not a duplicate, add it
+              // 2. Add the real message if it's not already present (by its actual Supabase ID)
+              if (!messagesInThread.some(msg => msg.id === realMessage.id)) {
                 newChats[chatIndex].messages = [...messagesInThread, realMessage];
-                console.log("Realtime: Nova mensagem adicionada ao chat existente (não otimista):", realMessage);
+                console.log("Realtime: Nova mensagem adicionada ao chat existente (após remover otimista):", realMessage);
               } else {
-                console.log("Realtime: Mensagem já existe no chat (real ou otimista já substituída), ignorando duplicação.");
+                console.log("Realtime: Mensagem já existe no chat (real), ignorando duplicação.");
               }
             } else {
               // Create a new chat if it doesn't exist (e.g., first message from a new contact)
