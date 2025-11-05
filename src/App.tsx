@@ -373,35 +373,26 @@ const App: React.FC = () => {
             const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
 
             if (chatIndex > -1) {
-              let messagesInThread = newChats[chatIndex].messages;
-              let messageReplaced = false;
+              let currentMessages = newChats[chatIndex].messages;
+              let updatedMessages = [...currentMessages]; // Start with a fresh copy
 
-              // Try to find and replace an optimistic message if it was sent by the current user
-              if (realMessage.senderId === currentUser.id) {
-                const optimisticMessageIndex = messagesInThread.findIndex(msg =>
-                  msg.id.startsWith('temp-') && msg.senderId === realMessage.senderId && msg.text === realMessage.text
-                );
+              // 1. Remove any optimistic message that matches the incoming real message
+              // This handles cases where the optimistic message might still be there.
+              updatedMessages = updatedMessages.filter(msg =>
+                !(msg.id.startsWith('temp-') &&
+                  msg.senderId === realMessage.senderId &&
+                  msg.text.trim() === realMessage.text.trim()) // Robust text comparison
+              );
+              console.log("Realtime: Após filtrar otimistas, mensagens:", updatedMessages);
 
-                if (optimisticMessageIndex > -1) {
-                  messagesInThread = [
-                    ...messagesInThread.slice(0, optimisticMessageIndex),
-                    realMessage,
-                    ...messagesInThread.slice(optimisticMessageIndex + 1)
-                  ];
-                  messageReplaced = true;
-                  console.log("Realtime: Mensagem otimista substituída pela real:", realMessage);
-                }
+              // 2. Add the real message if it's not already present (by its actual Supabase ID)
+              if (!updatedMessages.some(msg => msg.id === realMessage.id)) {
+                updatedMessages.push(realMessage);
+                console.log("Realtime: Mensagem real adicionada:", realMessage);
+              } else {
+                console.log("Realtime: Mensagem real já existe, ignorando duplicação:", realMessage);
               }
-
-              // If no optimistic message was replaced, or it was a message from another user,
-              // add the real message if it's not already present (by its actual Supabase ID)
-              if (!messageReplaced && !messagesInThread.some(msg => msg.id === realMessage.id)) {
-                messagesInThread = [...messagesInThread, realMessage];
-                console.log("Realtime: Nova mensagem adicionada ao chat existente:", realMessage);
-              } else if (!messageReplaced) {
-                console.log("Realtime: Mensagem já existe no chat (real), ignorando duplicação.");
-              }
-              newChats[chatIndex].messages = messagesInThread;
+              newChats[chatIndex].messages = updatedMessages;
 
             } else {
               // Create a new chat if it doesn't exist (e.g., first message from a new contact)
