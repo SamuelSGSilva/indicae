@@ -576,9 +576,10 @@ const App: React.FC = () => {
 
       try {
         console.log(`handleConnectionAction: Tentando ${action} conexão ${connectionId} para receiver_id ${currentUser.id}`);
+        const newStatus = action === 'accept' ? 'accepted' : 'rejected';
         const { data, error } = await supabase
           .from('connection_requests')
-          .update({ status: action })
+          .update({ status: newStatus })
           .eq('id', connectionId)
           .eq('receiver_id', currentUser.id)
           .select();
