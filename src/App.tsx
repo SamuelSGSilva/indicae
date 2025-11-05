@@ -346,6 +346,13 @@ const App: React.FC = () => {
         (payload) => {
           console.log('Realtime: Nova mensagem recebida!', payload);
           const newMessageData = payload.new as any;
+
+          // Ignore messages sent by the current user to prevent duplication
+          if (newMessageData.sender_id === currentUser.id) {
+            console.log("Realtime: Mensagem ignorada (enviada pelo usuário atual).");
+            return;
+          }
+
           const sender = users.find(u => u.id === newMessageData.sender_id);
           const receiver = users.find(u => u.id === newMessageData.receiver_id);
 
