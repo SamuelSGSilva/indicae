@@ -357,43 +357,49 @@ const App: React.FC = () => {
           const chatPartnerId = newMessageData.sender_id === currentUser.id ? newMessageData.receiver_id : newMessageData.sender_id;
           const chatPartner = chatPartnerId === sender.id ? sender : receiver;
 
-          // Verifica se a mensagem já existe no chat para evitar duplicação
+          const realMessage: Message = {
+            id: newMessageData.id,
+            text: newMessageData.content,
+            time: new Date(newMessageData.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            senderId: newMessageData.sender_id,
+            avatar: (newMessageData.sender_id === currentUser.id ? currentUser.avatar : chatPartner.avatar) || '',
+          };
+          console.log("Realtime: Mensagem real construída:", realMessage);
+
           setChats(prevChats => {
             const newChats = [...prevChats];
             const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
 
             if (chatIndex > -1) {
-              // Verifica se a mensagem já está presente para evitar duplicação
-              if (!newChats[chatIndex].messages.some(msg => msg.id === newMessageData.id)) {
-                const newMessage: Message = {
-                  id: newMessageData.id,
-                  text: newMessageData.content,
-                  time: new Date(newMessageData.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-                  senderId: newMessageData.sender_id,
-                  avatar: (newMessageData.sender_id === currentUser.id ? currentUser.avatar : chatPartner.avatar) || '',
-                };
-                newChats[chatIndex].messages = [...newChats[chatIndex].messages, newMessage];
-                console.log("Realtime: Nova mensagem adicionada ao chat existente:", newMessage);
+              const messagesInThread = newChats[chatIndex].messages;
+              // Check if an optimistic message exists that matches the content and sender
+              // This is a heuristic to find the optimistic message to replace
+              const optimisticMessageIndex = messagesInThread.findIndex(msg => 
+                msg.senderId === realMessage.senderId && 
+                msg.text === realMessage.text && 
+                msg.id.startsWith('temp-')
+              );
+
+              if (optimisticMessageIndex > -1) {
+                // Replace the optimistic message with the real one
+                messagesInThread[optimisticMessageIndex] = realMessage;
+                console.log("Realtime: Mensagem otimista substituída pela real:", realMessage);
+              } else if (!messagesInThread.some(msg => msg.id === realMessage.id)) {
+                // If no optimistic message to replace, and it's not a duplicate, add it
+                newChats[chatIndex].messages = [...messagesInThread, realMessage];
+                console.log("Realtime: Nova mensagem adicionada ao chat existente (não otimista):", realMessage);
               } else {
-                console.log("Realtime: Mensagem já existe no chat, ignorando duplicação.");
+                console.log("Realtime: Mensagem já existe no chat (real ou otimista já substituída), ignorando duplicação.");
               }
             } else {
-              // Cria um novo chat se não existir (ex: primeira mensagem)
-              const newMessage: Message = {
-                id: newMessageData.id,
-                text: newMessageData.content,
-                time: new Date(newMessageData.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-                senderId: newMessageData.sender_id,
-                avatar: (newMessageData.sender_id === currentUser.id ? currentUser.avatar : chatPartner.avatar) || '',
-              };
+              // Create a new chat if it doesn't exist (e.g., first message from a new contact)
               newChats.push({
-                id: chatPartnerId, // Usa o ID do parceiro como ID do chat para simplicidade
+                id: chatPartnerId,
                 contact: chatPartner,
-                messages: [newMessage],
+                messages: [realMessage],
               });
-              console.log("Realtime: Novo chat criado com a mensagem:", newMessage);
+              console.log("Realtime: Novo chat criado com a mensagem:", realMessage);
             }
-            console.log("Realtime: Estado 'chats' após atualização:", newChats);
             return newChats;
           });
         }
@@ -640,6 +646,31 @@ const App: React.FC = () => {
       }
       console.log(`handleSendMessage: Tentando enviar mensagem para ${chatPartnerId}: "${text}"`);
 
+      const tempMessageId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      const optimisticMessage: Message = {
+          id: tempMessageId,
+          text: text,
+          time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+          senderId: currentUser.id,
+          avatar: currentUser.avatar,
+      };
+
+      // Optimistic update
+      setChats(prevChats => {
+          const newChats = [...prevChats];
+          const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
+          if (chatIndex > -1) {
+              newChats[chatIndex].messages = [...newChats[chatIndex].messages, optimisticMessage];
+          } else {
+              // This case should ideally not happen if chat threads are pre-loaded for accepted connections
+              const partner = users.find(u => u.id === chatPartnerId);
+              if (partner) {
+                newChats.push({ id: chatPartnerId, contact: partner, messages: [optimisticMessage] });
+              }
+          }
+          return newChats;
+      });
+
       try {
         const { data, error } = await supabase
           .from('messages')
@@ -654,29 +685,32 @@ const App: React.FC = () => {
         if (error) {
           console.error('handleSendMessage: Erro ao enviar mensagem:', error);
           toast.error(`Erro ao enviar mensagem: ${error.message}`);
+          // Rollback optimistic update on error
+          setChats(prevChats => {
+              const newChats = [...prevChats];
+              const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
+              if (chatIndex > -1) {
+                  newChats[chatIndex].messages = newChats[chatIndex].messages.filter(msg => msg.id !== tempMessageId);
+              }
+              return newChats;
+          });
         } else {
           console.log('handleSendMessage: Mensagem enviada com sucesso para Supabase:', data);
-          // REMOVIDO: Atualização otimista da UI. Agora, a UI será atualizada via real-time listener.
-          // const newMessage: Message = {
-          //   id: data.id,
-          //   text: data.content,
-          //   time: new Date(data.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-          //   senderId: data.sender_id,
-          //   avatar: currentUser.avatar,
-          // };
-
-          // setChats(prevChats => {
-          //   const newChats = [...prevChats];
-          //   const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
-          //   if (chatIndex > -1) {
-          //     newChats[chatIndex].messages.push(newMessage);
-          //   }
-          //   return newChats;
-          // });
+          // The real-time listener will handle replacing the optimistic message
+          // or adding it if it's a new chat.
         }
       } catch (e: any) {
         console.error('handleSendMessage: Erro inesperado ao enviar mensagem:', e);
         toast.error(`Erro inesperado ao enviar mensagem: ${e.message || 'Verifique o console.'}`);
+        // Rollback optimistic update on unexpected error
+        setChats(prevChats => {
+            const newChats = [...prevChats];
+            const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
+            if (chatIndex > -1) {
+                newChats[chatIndex].messages = newChats[chatIndex].messages.filter(msg => msg.id !== tempMessageId);
+            }
+            return newChats;
+        });
       }
   };
 
