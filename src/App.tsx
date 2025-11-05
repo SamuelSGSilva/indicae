@@ -357,29 +357,41 @@ const App: React.FC = () => {
           const chatPartnerId = newMessageData.sender_id === currentUser.id ? newMessageData.receiver_id : newMessageData.sender_id;
           const chatPartner = chatPartnerId === sender.id ? sender : receiver;
 
-          const newMessage: Message = {
-            id: newMessageData.id,
-            text: newMessageData.content,
-            time: new Date(newMessageData.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-            senderId: newMessageData.sender_id,
-            avatar: (newMessageData.sender_id === currentUser.id ? currentUser.avatar : chatPartner.avatar) || '',
-          };
-          console.log("Realtime: Objeto newMessage construído:", newMessage);
-
+          // Verifica se a mensagem já existe no chat para evitar duplicação
           setChats(prevChats => {
             const newChats = [...prevChats];
             const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
 
             if (chatIndex > -1) {
-              // Update existing chat thread
-              newChats[chatIndex].messages = [...newChats[chatIndex].messages, newMessage];
+              // Verifica se a mensagem já está presente para evitar duplicação
+              if (!newChats[chatIndex].messages.some(msg => msg.id === newMessageData.id)) {
+                const newMessage: Message = {
+                  id: newMessageData.id,
+                  text: newMessageData.content,
+                  time: new Date(newMessageData.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                  senderId: newMessageData.sender_id,
+                  avatar: (newMessageData.sender_id === currentUser.id ? currentUser.avatar : chatPartner.avatar) || '',
+                };
+                newChats[chatIndex].messages = [...newChats[chatIndex].messages, newMessage];
+                console.log("Realtime: Nova mensagem adicionada ao chat existente:", newMessage);
+              } else {
+                console.log("Realtime: Mensagem já existe no chat, ignorando duplicação.");
+              }
             } else {
-              // Create new chat thread if it doesn't exist (e.g., first message)
+              // Cria um novo chat se não existir (ex: primeira mensagem)
+              const newMessage: Message = {
+                id: newMessageData.id,
+                text: newMessageData.content,
+                time: new Date(newMessageData.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                senderId: newMessageData.sender_id,
+                avatar: (newMessageData.sender_id === currentUser.id ? currentUser.avatar : chatPartner.avatar) || '',
+              };
               newChats.push({
-                id: chatPartnerId, // Use partner ID as chat ID for simplicity
+                id: chatPartnerId, // Usa o ID do parceiro como ID do chat para simplicidade
                 contact: chatPartner,
                 messages: [newMessage],
               });
+              console.log("Realtime: Novo chat criado com a mensagem:", newMessage);
             }
             console.log("Realtime: Estado 'chats' após atualização:", newChats);
             return newChats;
@@ -644,24 +656,23 @@ const App: React.FC = () => {
           toast.error(`Erro ao enviar mensagem: ${error.message}`);
         } else {
           console.log('handleSendMessage: Mensagem enviada com sucesso para Supabase:', data);
+          // REMOVIDO: Atualização otimista da UI. Agora, a UI será atualizada via real-time listener.
+          // const newMessage: Message = {
+          //   id: data.id,
+          //   text: data.content,
+          //   time: new Date(data.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+          //   senderId: data.sender_id,
+          //   avatar: currentUser.avatar,
+          // };
 
-          // Otimisticamente atualiza a UI com a nova mensagem
-          const newMessage: Message = {
-            id: data.id, // Ou um ID temporário
-            text: data.content,
-            time: new Date(data.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-            senderId: data.sender_id,
-            avatar: currentUser.avatar,
-          };
-
-          setChats(prevChats => {
-            const newChats = [...prevChats];
-            const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
-            if (chatIndex > -1) {
-              newChats[chatIndex].messages.push(newMessage);
-            }
-            return newChats;
-          });
+          // setChats(prevChats => {
+          //   const newChats = [...prevChats];
+          //   const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
+          //   if (chatIndex > -1) {
+          //     newChats[chatIndex].messages.push(newMessage);
+          //   }
+          //   return newChats;
+          // });
         }
       } catch (e: any) {
         console.error('handleSendMessage: Erro inesperado ao enviar mensagem:', e);
