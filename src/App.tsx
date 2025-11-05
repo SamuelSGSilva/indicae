@@ -638,6 +638,24 @@ const App: React.FC = () => {
           toast.error(`Erro ao enviar mensagem: ${error.message}`);
         } else {
           console.log('handleSendMessage: Mensagem enviada com sucesso para Supabase:', data);
+
+          // Otimisticamente atualiza a UI com a nova mensagem
+          const newMessage: Message = {
+            id: data.id, // Ou um ID temporário
+            text: data.content,
+            time: new Date(data.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            senderId: data.sender_id,
+            avatar: currentUser.avatar,
+          };
+
+          setChats(prevChats => {
+            const newChats = [...prevChats];
+            const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
+            if (chatIndex > -1) {
+              newChats[chatIndex].messages.push(newMessage);
+            }
+            return newChats;
+          });
         }
       } catch (e: any) {
         console.error('handleSendMessage: Erro inesperado ao enviar mensagem:', e);
