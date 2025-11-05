@@ -31,6 +31,7 @@ const NavItem: React.FC<{
 
 const BottomNav: React.FC<BottomNavProps> = ({ activeScreen, onNavigate }) => {
   const navItems = [
+    { screen: Screen.Home, label: 'Início', icon: icons.home },
     { screen: Screen.Search, label: 'Buscar', icon: icons.search },
     { screen: Screen.Connections, label: 'Conexões', icon: icons.connections },
     { screen: Screen.Messages, label: 'Mensagens', icon: icons.messages },
