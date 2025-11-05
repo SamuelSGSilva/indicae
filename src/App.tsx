@@ -576,10 +576,9 @@ const App: React.FC = () => {
 
       try {
         console.log(`handleConnectionAction: Tentando ${action} conexão ${connectionId} para receiver_id ${currentUser.id}`);
-        const newStatus = action === 'accept' ? 'accepted' : 'rejected';
         const { data, error } = await supabase
           .from('connection_requests')
-          .update({ status: newStatus })
+          .update({ status: action === 'accept' ? 'accepted' : 'rejected' })
           .eq('id', connectionId)
           .eq('receiver_id', currentUser.id)
           .select();
@@ -638,24 +637,6 @@ const App: React.FC = () => {
           toast.error(`Erro ao enviar mensagem: ${error.message}`);
         } else {
           console.log('handleSendMessage: Mensagem enviada com sucesso para Supabase:', data);
-
-          // Otimisticamente atualiza a UI com a nova mensagem
-          const newMessage: Message = {
-            id: data.id, // Ou um ID temporário
-            text: data.content,
-            time: new Date(data.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-            senderId: data.sender_id,
-            avatar: currentUser.avatar,
-          };
-
-          setChats(prevChats => {
-            const newChats = [...prevChats];
-            const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
-            if (chatIndex > -1) {
-              newChats[chatIndex].messages.push(newMessage);
-            }
-            return newChats;
-          });
         }
       } catch (e: any) {
         console.error('handleSendMessage: Erro inesperado ao enviar mensagem:', e);
@@ -740,9 +721,7 @@ const App: React.FC = () => {
       case Screen.Home:
         return currentUser ? <HomeScreen currentUser={currentUser} onNavigate={handleNavigate} /> : <div className="p-4 text-center">Carregando...</div>;
       case Screen.Search:
-        const connectedUserIds = new Set(acceptedConnections.map(c => c.user.id));
-        const searchableUsers = users.filter(u => u.id !== currentUser?.id && !connectedUserIds.has(u.id));
-        return <SearchScreen users={searchableUsers} onUserClick={handleViewOtherUser} onBack={handleBack} onNavigate={handleNavigate} />;
+        return <SearchScreen users={users.filter(u => u.id !== currentUser?.id)} onUserClick={handleViewOtherUser} onBack={handleBack} onNavigate={handleNavigate} />;
       case Screen.Connections:
         return <ConnectionsScreen 
                   connections={connections} 
