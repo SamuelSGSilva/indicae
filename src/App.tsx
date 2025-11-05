@@ -659,7 +659,7 @@ const App: React.FC = () => {
           avatar: currentUser.avatar,
       };
 
-      // Optimistic update
+      // Optimistic update: Add the temporary message to the chat
       setChats(prevChats => {
           const newChats = [...prevChats];
           const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
@@ -675,15 +675,14 @@ const App: React.FC = () => {
       });
 
       try {
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('messages')
           .insert({
             sender_id: currentUser.id,
             receiver_id: chatPartnerId,
             content: text,
-          })
-          .select()
-          .single();
+          });
+          // .select() // Removed .select() as we don't need the data back here for replacement
 
         if (error) {
           console.error('handleSendMessage: Erro ao enviar mensagem:', error);
@@ -698,9 +697,8 @@ const App: React.FC = () => {
               return newChats;
           });
         } else {
-          console.log('handleSendMessage: Mensagem enviada com sucesso para Supabase:', data);
-          // REMOVIDO: A substituição explícita da mensagem otimista aqui.
-          // O listener de tempo real agora é o único responsável por isso.
+          console.log('handleSendMessage: Mensagem enviada com sucesso para Supabase. Real-time listener irá lidar com a atualização final.');
+          // No explicit replacement here. The real-time listener will handle it.
         }
       } catch (e: any) {
         console.error('handleSendMessage: Erro inesperado ao enviar mensagem:', e);
