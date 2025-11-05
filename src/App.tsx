@@ -437,7 +437,10 @@ const App: React.FC = () => {
   const handleNavigate = (screen: Screen) => {
     console.log("handleNavigate: Navegando para a tela:", screen);
     setViewingOtherUser(null);
-    setChattingWith(null);
+    // Só limpa chattingWith se NÃO estivermos navegando para a tela de chat
+    if (screen !== Screen.Chat) {
+      setChattingWith(null);
+    }
     setHistory(prev => [...prev, screen]);
   };
 
@@ -463,7 +466,7 @@ const App: React.FC = () => {
       setViewingOtherUser(null);
       console.log("handleBack: Limpando viewingOtherUser.");
     } else if (history.length > 1) {
-      setChattingWith(null);
+      setChattingWith(null); 
       setHistory(prev => prev.slice(0, -1));
       console.log("handleBack: Voltando para a tela anterior, histórico atual:", history.slice(0, -1));
     } else {
