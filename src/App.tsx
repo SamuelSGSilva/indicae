@@ -16,6 +16,7 @@ const InitialScreen = lazy(() => import('./pages/InitialScreen'));
 const HomeScreen = lazy(() => import('./pages/HomeScreen'));
 // Importação da nova modal
 import OtherUserProfileModal from './components/OtherUserProfileModal';
+import ProfileMenu from './components/ProfileMenu'; // Import the new menu
 
 import ToastProvider from './components/ToastProvider';
 import { supabase } from './integrations/supabase/client';
@@ -24,6 +25,7 @@ import toast from 'react-hot-toast';
 console.log("App.tsx: Componente App carregado no arquivo.");
 
 const App: React.FC = () => {
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   console.log("App component rendering...");
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [authFlowScreen, setAuthFlowScreen] = useState<'initial' | 'login' | 'register'>('initial');
@@ -31,6 +33,7 @@ const App: React.FC = () => {
   const activeScreen = history[history.length - 1];
   const [viewingOtherUser, setViewingOtherUser] = useState<User | null>(null);
   const [chattingWith, setChattingWith] = useState<User | null>(null);
+  const [isProfileMenuOpen, setProfileMenuOpen] = useState(false);
 
   // App-wide state from our DB (will be partially migrated to Supabase)
   const [users, setUsers] = useState<User[]>([]);
@@ -754,7 +757,7 @@ const App: React.FC = () => {
       case Screen.Messages:
           return <MessagesScreen chats={chats} onChatClick={handleStartChat} onBack={handleBack} />;
       case Screen.Profile:
-        return currentUser ? <UserProfileScreen user={currentUser} onEdit={handleCreateProfile} onLogout={handleLogout} /> : <div className="p-4 text-center">Carregando perfil...</div>;
+        return currentUser ? <UserProfileScreen user={currentUser} onEdit={() => setProfileMenuOpen(true)} onLogout={handleLogout} /> : <div className="p-4 text-center">Carregando perfil...</div>;
       case Screen.CreateProfile:
         return currentUser ? <CreateProfileScreen user={currentUser} onBack={handleBack} onSave={handleSaveProfile}/> : <div className="p-4 text-center">Carregando...</div>;
       case Screen.SkillSearch:
@@ -806,11 +809,30 @@ const App: React.FC = () => {
       );
   }
 
+  const toggleTheme = () => {
+    setTheme(currentTheme => currentTheme === 'dark' ? 'light' : 'dark');
+  };
+
   return (
-    <div className="flex items-center justify-center min-h-screen font-sans bg-gray-900">
-      <div className="relative w-full max-w-sm h-[850px] bg-[#0B1526] text-white shadow-2xl rounded-lg overflow-hidden flex flex-col">
+    <div className={`flex items-center justify-center min-h-screen font-sans ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-200'}`}>
+      <div className={`relative w-full max-w-sm h-[850px] ${theme === 'dark' ? 'bg-[#0B1526] text-white' : 'bg-white text-gray-800'} shadow-2xl rounded-lg overflow-hidden flex flex-col`}>
         <ToastProvider />
         {renderContent()}
+        {isProfileMenuOpen && (
+          <ProfileMenu
+            onEditProfile={() => {
+              handleCreateProfile();
+              setProfileMenuOpen(false);
+            }}
+            onLogout={() => {
+              handleLogout();
+              setProfileMenuOpen(false);
+            }}
+            onToggleTheme={toggleTheme}
+            theme={theme}
+            onClose={() => setProfileMenuOpen(false)}
+          />
+        )}
       </div>
     </div>
   );
