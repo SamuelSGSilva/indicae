@@ -377,37 +377,22 @@ const App: React.FC = () => {
               let messagesInThread = newChats[chatIndex].messages;
               let updatedMessages = [...messagesInThread];
 
-              // Check if the incoming real message is from the current user
-              const isOurOwnMessage = realMessage.senderId === currentUser.id;
+              // 1. Remove any existing message with the same REAL ID to prevent duplication
+              updatedMessages = updatedMessages.filter(msg => msg.id !== realMessage.id);
+              console.log("Realtime: Após remover duplicatas por ID real, mensagens:", updatedMessages);
 
-              if (isOurOwnMessage) {
-                // If it's our own message, try to find and replace the optimistic one
-                const optimisticIndex = updatedMessages.findIndex(msg =>
-                  msg.id.startsWith('temp-') &&
-                  msg.senderId === realMessage.senderId &&
-                  msg.text.trim() === realMessage.text.trim()
+              // 2. If the real message is from the current user, also remove the corresponding optimistic message
+              if (realMessage.senderId === currentUser.id) {
+                updatedMessages = updatedMessages.filter(msg =>
+                  !(msg.id.startsWith('temp-') &&
+                    msg.senderId === realMessage.senderId &&
+                    msg.text.trim() === realMessage.text.trim())
                 );
-
-                if (optimisticIndex > -1) {
-                  // Replace the optimistic message with the real one
-                  updatedMessages[optimisticIndex] = realMessage;
-                  console.log("Realtime: Mensagem otimista substituída pela real (nossa própria).");
-                } else if (!updatedMessages.some(msg => msg.id === realMessage.id)) {
-                  // If no optimistic message found to replace, but it's a new real message, add it
-                  updatedMessages.push(realMessage);
-                  console.log("Realtime: Nossa própria mensagem real adicionada (sem otimista correspondente).");
-                } else {
-                  console.log("Realtime: Nossa própria mensagem real já existe, ignorando duplicação.");
-                }
-              } else {
-                // If it's a message from another user, just add it if not already present
-                if (!updatedMessages.some(msg => msg.id === realMessage.id)) {
-                  updatedMessages.push(realMessage);
-                  console.log("Realtime: Mensagem de outro usuário adicionada.");
-                } else {
-                  console.log("Realtime: Mensagem de outro usuário já existe, ignorando duplicação.");
-                }
+                console.log("Realtime: Após remover otimistas, mensagens:", updatedMessages);
               }
+
+              // 3. Finally, add the real message
+              updatedMessages.push(realMessage);
               newChats[chatIndex].messages = updatedMessages;
 
             } else {
