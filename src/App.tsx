@@ -676,6 +676,8 @@ const App: React.FC = () => {
       });
 
       try {
+        // A linha abaixo foi removida, pois o gerenciamento de mensagens agora é feito via Supabase.
+        // db.addMessage(chatPartnerId, newMessage); 
         const { error } = await supabase
           .from('messages')
           .insert({
