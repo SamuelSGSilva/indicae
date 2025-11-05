@@ -378,12 +378,15 @@ const App: React.FC = () => {
             const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
 
             if (chatIndex > -1) {
-              // Update existing chat thread
-              newChats[chatIndex].messages = [...newChats[chatIndex].messages, newMessage];
+              // Check for message existence before adding
+              const messageExists = newChats[chatIndex].messages.some(m => m.id === newMessage.id);
+              if (!messageExists) {
+                newChats[chatIndex].messages = [...newChats[chatIndex].messages, newMessage];
+              }
             } else {
-              // Create new chat thread if it doesn't exist (e.g., first message)
+              // Create new chat thread if it doesn't exist
               newChats.push({
-                id: chatPartnerId, // Use partner ID as chat ID for simplicity
+                id: chatPartnerId,
                 contact: chatPartner,
                 messages: [newMessage],
               });
