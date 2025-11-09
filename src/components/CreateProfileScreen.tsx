@@ -42,7 +42,7 @@ const SkillSection: React.FC<{
                 </button>
             </div>
             <div className="flex flex-wrap gap-2 mt-3">
-                {skills.map((skill, index) => <SkillTag key={index} skill={skill} color={getColorForSkill(skill)} onRemove={() => onRemoveSkill(skill)} />)}
+                {skills.map((skill: string, index: number) => <SkillTag key={index} skill={skill} color={getColorForSkill(skill)} onRemove={() => onRemoveSkill(skill)} />)}
             </div>
         </div>
     );
@@ -62,7 +62,7 @@ const CreateProfileScreen: React.FC<CreateProfileScreenProps> = ({ user, onBack,
 
     const handleSelectSkill = (skill: string) => {
         if (skillTypeToEdit) {
-            setFormData(prev => ({
+            setFormData((prev: User) => ({
                 ...prev,
                 [skillTypeToEdit]: [...(prev[skillTypeToEdit] || []), skill]
             }));
@@ -71,15 +71,15 @@ const CreateProfileScreen: React.FC<CreateProfileScreenProps> = ({ user, onBack,
     };
 
     const handleRemoveSkill = (type: 'softSkills' | 'hardSkills', skillToRemove: string) => {
-        setFormData(prev => ({
+        setFormData((prev: User) => ({
             ...prev,
-            [type]: prev[type]?.filter(skill => skill !== skillToRemove)
+            [type]: prev[type]?.filter((skill: string) => skill !== skillToRemove)
         }));
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        setFormData((prev: User) => ({ ...prev, [name]: value }));
     };
 
     const handleAvatarClick = () => {
@@ -91,7 +91,7 @@ const CreateProfileScreen: React.FC<CreateProfileScreenProps> = ({ user, onBack,
         if (file) {
             const reader = new FileReader();
             reader.onloadend = () => {
-                setFormData(prev => ({...prev, avatar: reader.result as string}));
+                setFormData((prev: User) => ({...prev, avatar: reader.result as string}));
             };
             reader.readAsDataURL(file);
         }
@@ -159,7 +159,7 @@ const CreateProfileScreen: React.FC<CreateProfileScreenProps> = ({ user, onBack,
                     icon={icons.softSkills('w-6 h-6 text-white')}
                     skills={formData.softSkills || []}
                     onAddSkill={() => openSkillModal('softSkills')}
-                    onRemoveSkill={(skill) => handleRemoveSkill('softSkills', skill)}
+                    onRemoveSkill={(skill: string) => handleRemoveSkill('softSkills', skill)}
                 />
                 <SkillSection 
                     title="Hard Skills"
@@ -167,7 +167,7 @@ const CreateProfileScreen: React.FC<CreateProfileScreenProps> = ({ user, onBack,
                     icon={icons.hardSkills('w-6 h-6 text-white')}
                     skills={formData.hardSkills || []}
                     onAddSkill={() => openSkillModal('hardSkills')}
-                    onRemoveSkill={(skill) => handleRemoveSkill('hardSkills', skill)}
+                    onRemoveSkill={(skill: string) => handleRemoveSkill('hardSkills', skill)}
                 />
             </div>
 
@@ -194,8 +194,8 @@ const CreateProfileScreen: React.FC<CreateProfileScreenProps> = ({ user, onBack,
         <CityModal
             isOpen={isCityModalOpen}
             onClose={() => setIsCityModalOpen(false)}
-            onSelectCity={(selectedCity) => {
-                setFormData(prev => ({...prev, city: selectedCity}));
+            onSelectCity={(selectedCity: string) => {
+                setFormData((prev: User) => ({...prev, city: selectedCity}));
                 setIsCityModalOpen(false);
             }}
             availableCities={ALL_CITIES}

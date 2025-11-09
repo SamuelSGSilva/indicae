@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChatThread, User } from '../types'; // Caminho atualizado
-import { icons } from '../constants'; // Caminho atualizado
+// import { icons } from '../constants'; // Caminho atualizado - Removed unused import
 
 interface MessagesScreenProps {
   chats: ChatThread[];
@@ -36,7 +36,7 @@ const MessagesScreen: React.FC<MessagesScreenProps> = ({ chats, onChatClick, onB
       <main className="bg-white rounded-t-[2.5rem] p-4 mt-4 h-full">
         {chats.length > 0 ? (
           <div>
-            {chats.map(chat => (
+            {chats.map((chat: ChatThread) => (
                 <ChatListItem key={chat.id} chat={chat} onClick={() => onChatClick(chat.contact)} />
             ))}
           </div>

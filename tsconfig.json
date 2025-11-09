@@ -20,12 +20,13 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
 
-    /* Path Aliases - Mantido para compatibilidade, mas não usado nas lazy imports */
+    /* Path Aliases */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
-    }
+      "@/*": ["./src/*"]
+    },
+    "types": ["vite/client", "react", "react-dom"]
   },
-  "include": ["src", "index.tsx", "vite.config.ts"],
+  "include": ["src", "index.tsx", "vite.config.ts", "AI_RULES.md"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

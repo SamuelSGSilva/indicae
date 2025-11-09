@@ -31,17 +31,17 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ users, onUserClick, onBack 
     // Filter by text query (name, skills, city)
     if (query) {
       const lowerCaseQuery = query.toLowerCase();
-      currentFilteredUsers = currentFilteredUsers.filter(user => 
+      currentFilteredUsers = currentFilteredUsers.filter((user: User) => 
         user.name.toLowerCase().includes(lowerCaseQuery) ||
         user.city.toLowerCase().includes(lowerCaseQuery) ||
-        user.hardSkills?.some(skill => skill.toLowerCase().includes(lowerCaseQuery)) ||
-        user.softSkills?.some(skill => skill.toLowerCase().includes(lowerCaseQuery))
+        user.hardSkills?.some((skill: string) => skill.toLowerCase().includes(lowerCaseQuery)) ||
+        user.softSkills?.some((skill: string) => skill.toLowerCase().includes(lowerCaseQuery))
       );
     }
 
     // Filter by selected city
     if (selectedCity) {
-      currentFilteredUsers = currentFilteredUsers.filter(user => 
+      currentFilteredUsers = currentFilteredUsers.filter((user: User) => 
         user.city.toLowerCase() === selectedCity.toLowerCase()
       );
     }
@@ -49,7 +49,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ users, onUserClick, onBack 
     // Filter by age range
     const ageRange = AGE_RANGES.find(range => range.label === selectedAgeRange);
     if (ageRange && ageRange.label !== 'Todas as Idades') {
-      currentFilteredUsers = currentFilteredUsers.filter(user => {
+      currentFilteredUsers = currentFilteredUsers.filter((user: User) => {
         const age = calculateAge(user.dob);
         return age >= ageRange.min && age <= ageRange.max;
       });
@@ -74,7 +74,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ users, onUserClick, onBack 
               placeholder="Pesquise por nome, skill ou cidade..." 
               className="w-full bg-white text-gray-800 rounded-full py-3 pl-12 pr-4 focus:outline-none"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
             />
             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
               {icons.search('w-6 h-6')}
@@ -93,7 +93,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ users, onUserClick, onBack 
                 <select
                   id="ageRange"
                   value={selectedAgeRange}
-                  onChange={(e) => setSelectedAgeRange(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedAgeRange(e.target.value)}
                   className="bg-transparent text-white focus:outline-none"
                 >
                   {AGE_RANGES.map(range => (
@@ -109,7 +109,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ users, onUserClick, onBack 
         <main className="bg-white rounded-t-[2.5rem] p-4 mt-4 flex-grow overflow-y-auto">
           {filteredUsers.length > 0 ? (
             <div className="grid grid-cols-2 gap-4">
-              {filteredUsers.map(user => (
+              {filteredUsers.map((user: User) => (
                   <UserCard key={user.id} user={user} onClick={() => onUserClick(user)}/>
               ))}
             </div>
@@ -122,7 +122,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ users, onUserClick, onBack 
       <CityModal
         isOpen={isCityModalOpen}
         onClose={() => setIsCityModalOpen(false)}
-        onSelectCity={(city) => {
+        onSelectCity={(city: string) => {
           setSelectedCity(city);
           setIsCityModalOpen(false);
         }}

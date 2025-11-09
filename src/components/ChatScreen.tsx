@@ -28,7 +28,7 @@ const ChatMessageBubble: React.FC<{ message: Message, isSender: boolean }> = ({ 
 
 const ChatScreen: React.FC<ChatScreenProps> = ({ user, messages, onBack, onSendMessage, currentUserId }) => {
   const [newMessage, setNewMessage] = useState('');
-  const messagesEndRef = useRef<null | HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -67,7 +67,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ user, messages, onBack, onSendM
         </div>
         
         <div className="flex-grow p-4 overflow-y-auto flex flex-col">
-            {messages.map(msg => (
+            {messages.map((msg: Message) => (
                 <ChatMessageBubble key={msg.id} message={msg} isSender={msg.senderId === currentUserId} />
             ))}
             <div ref={messagesEndRef} />
@@ -79,7 +79,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ user, messages, onBack, onSendM
               placeholder="Digite sua mensagem ..." 
               className="flex-grow bg-gray-100 rounded-full py-3 px-4 focus:outline-none text-gray-800"
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewMessage(e.target.value)}
               onKeyPress={handleKeyPress}
             />
             <button onClick={handleSend} className="bg-teal-600 text-white p-3 rounded-full hover:bg-teal-700 transition-colors">

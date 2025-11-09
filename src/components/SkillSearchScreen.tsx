@@ -25,9 +25,9 @@ const SkillSearchScreen: React.FC<SkillSearchScreenProps> = ({ allUsers, onUserC
       return allUsers;
     }
     const lowerCaseSearchTerm = searchTerm.toLowerCase();
-    return allUsers.filter(user =>
-      user.hardSkills?.some(skill => skill.toLowerCase().includes(lowerCaseSearchTerm)) ||
-      user.softSkills?.some(skill => skill.toLowerCase().includes(lowerCaseSearchTerm)) ||
+    return allUsers.filter((user: User) =>
+      user.hardSkills?.some((skill: string) => skill.toLowerCase().includes(lowerCaseSearchTerm)) ||
+      user.softSkills?.some((skill: string) => skill.toLowerCase().includes(lowerCaseSearchTerm)) ||
       user.name.toLowerCase().includes(lowerCaseSearchTerm)
     );
   }, [allUsers, searchTerm]);
@@ -46,7 +46,7 @@ const SkillSearchScreen: React.FC<SkillSearchScreenProps> = ({ allUsers, onUserC
             type="text"
             placeholder="Pesquisar por skill ou nome..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
             className="w-full bg-white text-gray-800 rounded-full py-3 pl-12 pr-4 focus:outline-none"
           />
           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
@@ -58,7 +58,7 @@ const SkillSearchScreen: React.FC<SkillSearchScreenProps> = ({ allUsers, onUserC
       <main className="bg-white rounded-t-[2.5rem] p-4 flex-grow overflow-y-auto">
         {filteredUsers.length > 0 ? (
           <div className="grid grid-cols-2 gap-4">
-            {filteredUsers.map(user => (
+            {filteredUsers.map((user: User) => (
                 <UserCard key={user.id} user={user} onClick={() => onUserClick(user)}/>
             ))}
           </div>

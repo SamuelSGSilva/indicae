@@ -174,15 +174,15 @@ const App: React.FC = () => {
     };
 
     // 4. Map raw requests to state variables using the profilesMap
-    const mappedIncomingRequests: ConnectionRequest[] = rawIncomingRequests?.map(req => mapRequestToConnection(req, false)) || [];
+    const mappedIncomingRequests: ConnectionRequest[] = rawIncomingRequests?.map((req: any) => mapRequestToConnection(req, false)) || [];
     setConnections(mappedIncomingRequests);
     console.log("fetchConnections: Solicitações pendentes mapeadas e definidas no estado 'connections':", mappedIncomingRequests);
 
-    const mappedSentRequests: ConnectionRequest[] = rawSentRequests?.map(req => mapRequestToConnection(req, true)) || [];
+    const mappedSentRequests: ConnectionRequest[] = rawSentRequests?.map((req: any) => mapRequestToConnection(req, true)) || [];
     setSentConnectionRequests(mappedSentRequests);
     console.log("fetchConnections: Solicitações enviadas mapeadas e definidas no estado 'sentConnectionRequests':", mappedSentRequests);
 
-    const mappedAcceptedConns: ConnectionRequest[] = rawAcceptedConns?.map(req => mapRequestToConnection(req, req.sender_id === userId)) || [];
+    const mappedAcceptedConns: ConnectionRequest[] = rawAcceptedConns?.map((req: any) => mapRequestToConnection(req, req.sender_id === userId)) || [];
     setAcceptedConnections(mappedAcceptedConns);
     console.log("fetchConnections: Conexões aceitas mapeadas e definidas no estado 'acceptedConnections':", mappedAcceptedConns);
   }, []);
@@ -207,7 +207,7 @@ const App: React.FC = () => {
       text: msg.content,
       time: new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
       senderId: msg.sender_id,
-      avatar: users.find(u => u.id === msg.sender_id)?.avatar || '', // Get sender's avatar from users state
+      avatar: users.find((u: User) => u.id === msg.sender_id)?.avatar || '', // Get sender's avatar from users state
     }));
     console.log(`fetchMessages: Mensagens mapeadas para o estado:`, mappedMessages);
     return mappedMessages;
@@ -268,7 +268,7 @@ const App: React.FC = () => {
             dob: '', city: '', avatar: '', email: session.user.email || ''
           });
           setHistory([Screen.Home]);
-          toast.warn('Seu perfil está incompleto. Por favor, edite-o.');
+          toast('Seu perfil está incompleto. Por favor, edite-o.', { icon: '⚠️' });
           await Promise.all([
             fetchConnections(session.user.id),
             fetchAllUsers()
@@ -291,7 +291,7 @@ const App: React.FC = () => {
       }
     });
 
-    const data = db.initialize();
+    db.initialize(); // Removed unused 'data' variable
 
     return () => {
       console.log('Realtime: Desinscrevendo-se do canal de mensagens.');
@@ -353,8 +353,8 @@ const App: React.FC = () => {
             return;
           }
 
-          const sender = users.find(u => u.id === newMessageData.sender_id);
-          const receiver = users.find(u => u.id === newMessageData.receiver_id);
+          const sender = users.find((u: User) => u.id === newMessageData.sender_id);
+          const receiver = users.find((u: User) => u.id === newMessageData.receiver_id);
 
           if (!sender || !receiver) {
             console.warn('Realtime: Perfil do remetente ou destinatário não encontrado para nova mensagem:', newMessageData);
@@ -373,13 +373,13 @@ const App: React.FC = () => {
           };
           console.log("Realtime: Objeto newMessage construído:", newMessage);
 
-          setChats(prevChats => {
+          setChats((prevChats: ChatThread[]) => {
             const newChats = [...prevChats];
-            const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
+            const chatIndex = newChats.findIndex((c: ChatThread) => c.contact.id === chatPartnerId);
 
             if (chatIndex > -1) {
               // Check for message existence before adding
-              const messageExists = newChats[chatIndex].messages.some(m => m.id === newMessage.id);
+              const messageExists = newChats[chatIndex].messages.some((m: Message) => m.id === newMessage.id);
               if (!messageExists) {
                 newChats[chatIndex].messages = [...newChats[chatIndex].messages, newMessage];
               }
@@ -427,7 +427,7 @@ const App: React.FC = () => {
           const updatedRequest = payload.new as any;
 
           if (updatedRequest.status === 'accepted' && updatedRequest.sender_id === currentUser.id) {
-            const acceptor = users.find(u => u.id === updatedRequest.receiver_id);
+            const acceptor = users.find((u: User) => u.id === updatedRequest.receiver_id);
             const acceptorName = acceptor ? acceptor.name : 'Alguém';
             toast.success(`${acceptorName} aceitou sua solicitação de conexão!`);
 
@@ -448,7 +448,7 @@ const App: React.FC = () => {
     console.log("handleNavigate: Navegando para a tela:", screen);
     setViewingOtherUser(null);
     setChattingWith(null);
-    setHistory(prev => [...prev, screen]);
+    setHistory((prev: Screen[]) => [...prev, screen]);
   };
 
   const handleViewOtherUser = useCallback((user: User) => {
@@ -472,7 +472,7 @@ const App: React.FC = () => {
       console.log("handleBack: Limpando viewingOtherUser.");
     } else if (history.length > 1) {
       setChattingWith(null);
-      setHistory(prev => prev.slice(0, -1));
+      setHistory((prev: Screen[]) => prev.slice(0, -1));
       console.log("handleBack: Voltando para a tela anterior, histórico atual:", history.slice(0, -1));
     } else {
       console.log("handleBack: Não há mais telas para voltar.");
@@ -528,9 +528,9 @@ const App: React.FC = () => {
       return;
     }
 
-    const existingRequest = sentConnectionRequests.find(req => req.receiver_id === receiverId && req.status === 'pending');
+    const existingRequest = sentConnectionRequests.find((req: ConnectionRequest) => req.receiver_id === receiverId && req.status === 'pending');
     if (existingRequest) {
-        toast.warn('Você já enviou uma solicitação de conexão para este usuário.');
+        toast('Você já enviou uma solicitação de conexão para este usuário.', { icon: '⚠️' });
         return;
     }
 
@@ -560,9 +560,9 @@ const App: React.FC = () => {
         console.log('handleSendConnectionRequest: Solicitação de conexão enviada com sucesso:', data);
         toast.success('Solicitação de conexão enviada com sucesso!');
         if (data) {
-            const receiverUser = users.find(u => u.id === receiverId);
+            const receiverUser = users.find((u: User) => u.id === receiverId);
             if (receiverUser) {
-                setSentConnectionRequests(prev => [...prev, {
+                setSentConnectionRequests((prev: ConnectionRequest[]) => [...prev, {
                     ...data,
                     user: receiverUser
                 }]);
@@ -611,10 +611,10 @@ const App: React.FC = () => {
           await fetchConnections(currentUser.id);
 
           if (action === 'accept') {
-            const acceptedConnection = connections.find(c => c.id === connectionId);
-            if (acceptedConnection && !chats.some(c => c.contact.id === acceptedConnection.user.id)) {
+            const acceptedConnection = connections.find((c: ConnectionRequest) => c.id === connectionId);
+            if (acceptedConnection && !chats.some((c: ChatThread) => c.contact.id === acceptedConnection.user.id)) {
               const messages = await fetchMessages(currentUser.id, acceptedConnection.user.id);
-              setChats(prev => [...prev, { id: acceptedConnection.id, contact: acceptedConnection.user, messages: messages }]);
+              setChats((prev: ChatThread[]) => [...prev, { id: acceptedConnection.id, contact: acceptedConnection.user, messages: messages }]);
               console.log("handleConnectionAction: Novo chat adicionado após aceitar conexão:", acceptedConnection.user.name);
             }
           }
@@ -640,14 +640,14 @@ const App: React.FC = () => {
         avatar: currentUser.avatar,
       };
 
-      setChats(prevChats => {
+      setChats((prevChats: ChatThread[]) => {
         const newChats = [...prevChats];
-        const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
+        const chatIndex = newChats.findIndex((c: ChatThread) => c.contact.id === chatPartnerId);
         if (chatIndex > -1) {
           newChats[chatIndex].messages.push(optimisticMessage);
         } else {
           // This case should ideally not happen if a chat screen is open
-          const chatPartner = users.find(u => u.id === chatPartnerId);
+          const chatPartner = users.find((u: User) => u.id === chatPartnerId);
           if (chatPartner) {
             newChats.push({
               id: chatPartnerId,
@@ -675,22 +675,22 @@ const App: React.FC = () => {
           console.error('handleSendMessage: Erro ao enviar mensagem:', error);
           toast.error(`Erro ao enviar mensagem: ${error.message}`);
           // Revert optimistic update on failure
-          setChats(prevChats => {
+          setChats((prevChats: ChatThread[]) => {
              const newChats = [...prevChats];
-             const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
+             const chatIndex = newChats.findIndex((c: ChatThread) => c.contact.id === chatPartnerId);
              if (chatIndex > -1) {
-                newChats[chatIndex].messages = newChats[chatIndex].messages.filter(m => m.id !== optimisticMessage.id);
+                newChats[chatIndex].messages = newChats[chatIndex].messages.filter((m: Message) => m.id !== optimisticMessage.id);
              }
              return newChats;
           });
         } else {
           console.log('handleSendMessage: Mensagem enviada com sucesso para Supabase:', data);
           // Replace optimistic message with the real one from the DB
-          setChats(prevChats => {
+          setChats((prevChats: ChatThread[]) => {
             const newChats = [...prevChats];
-            const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
+            const chatIndex = newChats.findIndex((c: ChatThread) => c.contact.id === chatPartnerId);
             if (chatIndex > -1) {
-               const messageIndex = newChats[chatIndex].messages.findIndex(m => m.id === optimisticMessage.id);
+               const messageIndex = newChats[chatIndex].messages.findIndex((m: Message) => m.id === optimisticMessage.id);
                if (messageIndex > -1) {
                   const realMessage: Message = {
                     id: data.id,
@@ -749,7 +749,6 @@ const App: React.FC = () => {
     });
 
     if (error) {
-      console.error("handleRegister: Erro de registro:", error.message);
       toast.error(error.message);
     } else if (data.user) {
       console.log("handleRegister: Registro realizado com sucesso, usuário:", data.user);
@@ -774,22 +773,22 @@ const App: React.FC = () => {
 
   const renderScreen = () => {
     if (chattingWith && activeScreen === Screen.Chat && currentUser) {
-      const chat = chats.find(c => c.contact.id === chattingWith.id);
+      const chat = chats.find((c: ChatThread) => c.contact.id === chattingWith.id);
       return <ChatScreen
                 user={chattingWith}
                 messages={chat?.messages || []}
                 onBack={handleBack}
-                onSendMessage={(text) => handleSendMessage(chattingWith.id, text)}
+                onSendMessage={(text: string) => handleSendMessage(chattingWith.id, text)}
                 currentUserId={currentUser.id}
              />;
     }
 
     switch (activeScreen) {
       case Screen.Home:
-        return currentUser ? <HomeScreen currentUser={currentUser} onNavigate={handleNavigate} /> : <div className="p-4 text-center">Carregando...</div>;
+        return currentUser ? <HomeScreen currentUser={currentUser} onNavigate={handleNavigate} /> : <div className="p-4 text-center text-gray-800">Carregando...</div>;
       case Screen.Search:
-        const connectedUserIds = new Set(acceptedConnections.map(c => c.user.id));
-        const searchableUsers = users.filter(u => u.id !== currentUser?.id && !connectedUserIds.has(u.id));
+        const connectedUserIds = new Set(acceptedConnections.map((c: ConnectionRequest) => c.user.id));
+        const searchableUsers = users.filter((u: User) => u.id !== currentUser?.id && !connectedUserIds.has(u.id));
         return <SearchScreen users={searchableUsers} onUserClick={handleViewOtherUser} onBack={handleBack} onNavigate={handleNavigate} />;
       case Screen.Connections:
         return <ConnectionsScreen
@@ -802,11 +801,11 @@ const App: React.FC = () => {
       case Screen.Messages:
           return <MessagesScreen chats={chats} onChatClick={handleStartChat} onBack={handleBack} />;
       case Screen.Profile:
-        return currentUser ? <UserProfileScreen user={currentUser} onEdit={() => setProfileMenuOpen(true)} onLogout={handleLogout} /> : <div className="p-4 text-center">Carregando perfil...</div>;
+        return currentUser ? <UserProfileScreen user={currentUser} onEdit={() => setProfileMenuOpen(true)} onLogout={handleLogout} /> : <div className="p-4 text-center text-gray-800">Carregando perfil...</div>;
       case Screen.CreateProfile:
-        return currentUser ? <CreateProfileScreen user={currentUser} onBack={handleBack} onSave={handleSaveProfile}/> : <div className="p-4 text-center">Carregando...</div>;
+        return currentUser ? <CreateProfileScreen user={currentUser} onBack={handleBack} onSave={handleSaveProfile}/> : <div className="p-4 text-center text-gray-800">Carregando...</div>;
       case Screen.SkillSearch:
-        return <SkillSearchScreen allUsers={users.filter(u => u.id !== currentUser?.id)} onUserClick={handleViewOtherUser} onBack={handleBack} />;
+        return <SkillSearchScreen allUsers={users.filter((u: User) => u.id !== currentUser?.id)} onUserClick={handleViewOtherUser} onBack={handleBack} />;
       default:
         return <HomeScreen currentUser={currentUser!} onNavigate={handleNavigate} />;
     }
@@ -834,7 +833,7 @@ const App: React.FC = () => {
                 {renderScreen()}
               </Suspense>
             </div>
-            {isNavVisible && <BottomNav activeScreen={activeScreen} onNavigate={(s) => setHistory([s])} />}
+            {isNavVisible && <BottomNav activeScreen={activeScreen} onNavigate={(s: Screen) => setHistory([s])} />}
 
             {/* Renderiza a modal de perfil de outro usuário se viewingOtherUser estiver definido */}
             {viewingOtherUser && currentUser && (
@@ -842,8 +841,8 @@ const App: React.FC = () => {
                 user={viewingOtherUser}
                 onClose={() => setViewingOtherUser(null)}
                 onSendConnectionRequest={handleSendConnectionRequest}
-                isConnectionPending={sentConnectionRequests.some(req => req.receiver_id === viewingOtherUser.id && req.status === 'pending')}
-                isConnected={acceptedConnections.some(conn =>
+                isConnectionPending={sentConnectionRequests.some((req: ConnectionRequest) => req.receiver_id === viewingOtherUser.id && req.status === 'pending')}
+                isConnected={acceptedConnections.some((conn: ConnectionRequest) =>
                     (conn.sender_id === currentUser.id && conn.receiver_id === viewingOtherUser.id) ||
                     (conn.receiver_id === currentUser.id && conn.sender_id === viewingOtherUser.id)
                 )}
@@ -854,7 +853,7 @@ const App: React.FC = () => {
   }
 
   const toggleTheme = () => {
-    setTheme(currentTheme => currentTheme === 'dark' ? 'light' : 'dark');
+    setTheme((currentTheme: 'light' | 'dark') => currentTheme === 'dark' ? 'light' : 'dark');
   };
 
   return (

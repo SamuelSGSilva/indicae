@@ -22,8 +22,8 @@ const SkillModal: React.FC<SkillModalProps> = ({
 
   const filteredSkills = useMemo(() => {
     return availableSkills
-      .filter(skill => !currentSkills.includes(skill))
-      .filter(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()));
+      .filter((skill: string) => !currentSkills.includes(skill))
+      .filter((skill: string) => skill.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [availableSkills, currentSkills, searchTerm]);
 
   if (!isOpen) return null;
@@ -35,7 +35,7 @@ const SkillModal: React.FC<SkillModalProps> = ({
     >
       <div 
         className="bg-[#0d1b2a] rounded-2xl p-6 w-11/12 max-w-sm flex flex-col max-h-[70vh]"
-        onClick={e => e.stopPropagation()}
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
       >
         <h2 className="text-xl font-bold text-white text-center mb-4">{title}</h2>
         
@@ -44,7 +44,7 @@ const SkillModal: React.FC<SkillModalProps> = ({
             type="text"
             placeholder="Pesquisar skill..."
             value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
             className="w-full bg-gray-700 text-white rounded-full py-2.5 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-teal-500"
           />
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -53,7 +53,7 @@ const SkillModal: React.FC<SkillModalProps> = ({
         </div>
         
         <ul className="flex-grow overflow-y-auto space-y-2 pr-2">
-          {filteredSkills.length > 0 ? filteredSkills.map(skill => (
+          {filteredSkills.length > 0 ? filteredSkills.map((skill: string) => (
             <li key={skill}>
               <button
                 onClick={() => onSelectSkill(skill)}

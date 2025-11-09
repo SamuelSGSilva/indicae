@@ -51,8 +51,8 @@ const ConnectionsScreen: React.FC<ConnectionsScreenProps> = ({ connections, acce
     console.log("ConnectionsScreen: Prop 'acceptedConnections' (conexões aceitas) recebida:", acceptedConnections);
   }, [connections, acceptedConnections]);
 
-  const filteredRequests = connections.filter(c => c.user.name.toLowerCase().includes(query.toLowerCase()));
-  const filteredConnectedUsers = acceptedConnections.filter(c => c.user.name.toLowerCase().includes(query.toLowerCase()));
+  const filteredRequests = connections.filter((c: ConnectionRequest) => c.user.name.toLowerCase().includes(query.toLowerCase()));
+  const filteredConnectedUsers = acceptedConnections.filter((c: ConnectionRequest) => c.user.name.toLowerCase().includes(query.toLowerCase()));
   
   console.log("ConnectionsScreen: Usuários conectados filtrados:", filteredConnectedUsers);
 
@@ -71,7 +71,7 @@ const ConnectionsScreen: React.FC<ConnectionsScreenProps> = ({ connections, acce
             placeholder="Pesquisar por nome..." 
             className="w-full bg-gray-100 text-gray-800 rounded-full py-3 pl-12 pr-4 focus:outline-none"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
           />
           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
             {icons.search('w-6 h-6')}
@@ -96,7 +96,7 @@ const ConnectionsScreen: React.FC<ConnectionsScreenProps> = ({ connections, acce
         {activeTab === 'requests' ? (
           filteredRequests.length > 0 ? (
             <div className="grid grid-cols-1 gap-4">
-              {filteredRequests.map(req => (
+              {filteredRequests.map((req: ConnectionRequest) => (
                   <ConnectionRequestCard 
                     key={req.id} 
                     request={req} 
@@ -112,7 +112,7 @@ const ConnectionsScreen: React.FC<ConnectionsScreenProps> = ({ connections, acce
         ) : (
           filteredConnectedUsers.length > 0 ? (
             <div className="grid grid-cols-1 gap-4">
-              {filteredConnectedUsers.map(conn => (
+              {filteredConnectedUsers.map((conn: ConnectionRequest) => (
                   <ConnectedUserCard 
                     key={conn.id} 
                     user={conn.user} 

@@ -9,7 +9,7 @@ interface FeedbackScreenProps {
 const StarRating: React.FC<{ rating: number; setRating: (rating: number) => void; }> = ({ rating, setRating }) => {
   return (
     <div className="flex justify-center space-x-2">
-      {[1, 2, 3, 4, 5].map((star) => (
+      {[1, 2, 3, 4, 5].map((star: number) => (
         <button key={star} onClick={() => setRating(star)} className="focus:outline-none transition-transform transform hover:scale-110">
           {/* FIX: The icons.star function only takes one argument (className). The fill/color is handled by the className. */}
           {icons.star(`w-10 h-10 ${star <= rating ? 'text-yellow-400' : 'text-gray-400'}`)}
@@ -56,7 +56,7 @@ const FeedbackScreen: React.FC<FeedbackScreenProps> = ({ onBack, onSubmit }) => 
                 id="comment"
                 rows={8}
                 value={comment}
-                onChange={(e) => setComment(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setComment(e.target.value)}
                 placeholder="Descreva sua experiência com a indicação..."
                 className="w-full bg-gray-100 rounded-lg p-3 focus:outline-none flex-grow resize-none"
             />

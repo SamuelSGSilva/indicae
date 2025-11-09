@@ -22,7 +22,7 @@ const CityModal: React.FC<CityModalProps> = ({
     if (!searchTerm) {
       return availableCities;
     }
-    return availableCities.filter(city => 
+    return availableCities.filter((city: string) => 
       city.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [availableCities, searchTerm]);
@@ -36,7 +36,7 @@ const CityModal: React.FC<CityModalProps> = ({
     >
       <div 
         className="bg-[#0d1b2a] rounded-2xl p-6 w-11/12 max-w-sm flex flex-col max-h-[70vh]"
-        onClick={e => e.stopPropagation()}
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
       >
         <h2 className="text-xl font-bold text-white text-center mb-4">{title}</h2>
         
@@ -45,7 +45,7 @@ const CityModal: React.FC<CityModalProps> = ({
             type="text"
             placeholder="Pesquisar cidade..."
             value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
             className="w-full bg-gray-700 text-white rounded-full py-2.5 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-teal-500"
           />
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -54,7 +54,7 @@ const CityModal: React.FC<CityModalProps> = ({
         </div>
         
         <ul className="flex-grow overflow-y-auto space-y-2 pr-2">
-          {filteredCities.length > 0 ? filteredCities.map(city => (
+          {filteredCities.length > 0 ? filteredCities.map((city: string) => (
             <li key={city}>
               <button
                 onClick={() => onSelectCity(city)}

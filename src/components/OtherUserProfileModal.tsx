@@ -57,7 +57,7 @@ const OtherUserProfileModal: React.FC<OtherUserProfileModalProps> = ({
     >
       <div 
         className="bg-[#0B1526] rounded-2xl p-6 w-11/12 max-w-sm flex flex-col max-h-[90vh] overflow-y-auto text-white"
-        onClick={e => e.stopPropagation()}
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
       >
         <header className="flex justify-between items-center mb-4 flex-shrink-0">
           <button onClick={onClose} className="text-white">{icons.back('w-6 h-6')}</button>
@@ -96,7 +96,7 @@ const OtherUserProfileModal: React.FC<OtherUserProfileModalProps> = ({
                     </div>
                     {hasSoftSkills ? (
                         <div className="flex flex-wrap gap-2">
-                            {user.softSkills?.map((skill, index) => <SkillTag key={index} skill={skill} color={getColorForSkill(skill)}/>)}
+                            {user.softSkills?.map((skill: string, index: number) => <SkillTag key={index} skill={skill} color={getColorForSkill(skill)}/>)}
                         </div>
                     ) : <p className="text-gray-400 text-sm">Nenhuma skill adicionada.</p>}
                 </div>
@@ -108,7 +108,7 @@ const OtherUserProfileModal: React.FC<OtherUserProfileModalProps> = ({
                     </div>
                     {hasHardSkills ? (
                         <div className="flex flex-wrap gap-2">
-                            {user.hardSkills?.map((skill, index) => <SkillTag key={index} skill={skill} color={getColorForSkill(skill)}/>)}
+                            {user.hardSkills?.map((skill: string, index: number) => <SkillTag key={index} skill={skill} color={getColorForSkill(skill)}/>)}
                         </div>
                     ) : <p className="text-gray-400 text-sm">Nenhuma skill adicionada.</p>}
                 </div>
@@ -143,12 +143,12 @@ const OtherUserProfileModal: React.FC<OtherUserProfileModalProps> = ({
       >
         <div 
           className="bg-[#0d1b2a] rounded-2xl p-6 w-11/12 max-w-sm flex flex-col"
-          onClick={e => e.stopPropagation()}
+          onClick={(e: React.MouseEvent) => e.stopPropagation()}
         >
           <h2 className="text-xl font-bold text-white text-center mb-4">Conectar com {user.name.split(' ')[0]}</h2>
           <textarea
             value={interestMessage}
-            onChange={(e) => setInterestMessage(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInterestMessage(e.target.value)}
             placeholder="Escreva uma mensagem de interesse..."
             rows={5}
             className="w-full bg-gray-700 text-white rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-teal-500 mb-4"

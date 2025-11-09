@@ -29,7 +29,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onNavigateToRegister
             type="email"
             placeholder="Email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
             className="w-full bg-[#0d1b2a] border border-gray-600 text-white rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-teal-500"
             required
           />
@@ -37,7 +37,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onNavigateToRegister
             type="password"
             placeholder="Senha"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
             className="w-full bg-[#0d1b2a] border border-gray-600 text-white rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-teal-500"
             required
           />

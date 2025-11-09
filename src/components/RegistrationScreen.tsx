@@ -38,7 +38,7 @@ const RegistrationScreen: React.FC<RegistrationScreenProps> = ({ onRegister, onN
               type="text"
               placeholder="Nome Completo"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
               className="w-full bg-[#0d1b2a] border border-gray-600 text-white rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-teal-500"
               required
             />
@@ -46,7 +46,7 @@ const RegistrationScreen: React.FC<RegistrationScreenProps> = ({ onRegister, onN
                 <input
                     type="date"
                     value={dob}
-                    onChange={(e) => setDob(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDob(e.target.value)}
                     className="bg-transparent w-full focus:outline-none"
                     required
                 />
@@ -62,7 +62,7 @@ const RegistrationScreen: React.FC<RegistrationScreenProps> = ({ onRegister, onN
               type="email"
               placeholder="Email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
               className="w-full bg-[#0d1b2a] border border-gray-600 text-white rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-teal-500"
               required
             />
@@ -70,7 +70,7 @@ const RegistrationScreen: React.FC<RegistrationScreenProps> = ({ onRegister, onN
               type="password"
               placeholder="Senha"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
               className="w-full bg-[#0d1b2a] border border-gray-600 text-white rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-teal-500"
               required
             />
@@ -95,7 +95,7 @@ const RegistrationScreen: React.FC<RegistrationScreenProps> = ({ onRegister, onN
       <CityModal
         isOpen={isCityModalOpen}
         onClose={() => setIsCityModalOpen(false)}
-        onSelectCity={(selectedCity) => {
+        onSelectCity={(selectedCity: string) => {
             setCity(selectedCity);
             setIsCityModalOpen(false);
         }}

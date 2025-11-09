@@ -10,15 +10,17 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.76.1",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-hot-toast": "^2.6.0"
   },
   "devDependencies": {
     "@dyad-sh/react-vite-component-tagger": "^0.8.0",
-    "@types/node": "^22.14.0",
+    "@types/node": "latest",
     "@vitejs/plugin-react": "^5.0.0",
-    "rollup-plugin-visualizer": "^6.0.5",
+    "rollup-plugin-visualizer": "latest",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }
