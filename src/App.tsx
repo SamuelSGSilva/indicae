@@ -341,14 +341,18 @@ const App: React.FC = () => {
           event: 'INSERT',
           schema: 'public',
           table: 'messages',
-          // Filter for messages where current user is either sender or receiver
           filter: `sender_id=eq.${currentUser.id}.or.receiver_id=eq.${currentUser.id}`,
         },
         (payload) => {
           console.log('Realtime: Nova mensagem recebida!', payload);
           const newMessageData = payload.new as any;
-          
-          // Find sender and receiver profiles
+
+          // Ignore messages sent by the current user to prevent duplication
+          if (newMessageData.sender_id === currentUser.id) {
+            console.log("Realtime: Mensagem ignorada (enviada pelo usuário atual).");
+            return;
+          }
+
           const sender = users.find(u => u.id === newMessageData.sender_id);
           const receiver = users.find(u => u.id === newMessageData.receiver_id);
 
@@ -360,50 +364,34 @@ const App: React.FC = () => {
           const chatPartnerId = newMessageData.sender_id === currentUser.id ? newMessageData.receiver_id : newMessageData.sender_id;
           const chatPartner = chatPartnerId === sender.id ? sender : receiver;
 
-          const realMessage: Message = {
+          const newMessage: Message = {
             id: newMessageData.id,
             text: newMessageData.content,
             time: new Date(newMessageData.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
             senderId: newMessageData.sender_id,
             avatar: (newMessageData.sender_id === currentUser.id ? currentUser.avatar : chatPartner.avatar) || '',
           };
-          console.log("Realtime: Mensagem real construída:", realMessage);
+          console.log("Realtime: Objeto newMessage construído:", newMessage);
 
           setChats(prevChats => {
             const newChats = [...prevChats];
             const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
 
             if (chatIndex > -1) {
-              let messagesInThread = newChats[chatIndex].messages;
-              let updatedMessages = [...messagesInThread];
-
-              // 1. Remove any existing message with the same REAL ID to prevent duplication
-              updatedMessages = updatedMessages.filter(msg => msg.id !== realMessage.id);
-              console.log("Realtime: Após remover duplicatas por ID real, mensagens:", updatedMessages);
-
-              // 2. If the real message is from the current user, also remove the corresponding optimistic message
-              if (realMessage.senderId === currentUser.id) {
-                updatedMessages = updatedMessages.filter(msg =>
-                  !(msg.id.startsWith('temp-') &&
-                    msg.senderId === realMessage.senderId &&
-                    msg.text.trim() === realMessage.text.trim())
-                );
-                console.log("Realtime: Após remover otimistas, mensagens:", updatedMessages);
+              // Check for message existence before adding
+              const messageExists = newChats[chatIndex].messages.some(m => m.id === newMessage.id);
+              if (!messageExists) {
+                newChats[chatIndex].messages = [...newChats[chatIndex].messages, newMessage];
               }
-
-              // 3. Finally, add the real message
-              updatedMessages.push(realMessage);
-              newChats[chatIndex].messages = updatedMessages;
-
             } else {
-              // Create a new chat if it doesn't exist (e.g., first message from a new contact)
+              // Create new chat thread if it doesn't exist
               newChats.push({
                 id: chatPartnerId,
                 contact: chatPartner,
-                messages: [realMessage],
+                messages: [newMessage],
               });
-              console.log("Realtime: Novo chat criado com a mensagem:", realMessage);
             }
+            console.log("Realtime: Estado 'chats' após atualização:", newChats);
             return newChats;
           });
         }
@@ -459,10 +447,7 @@ const App: React.FC = () => {
   const handleNavigate = (screen: Screen) => {
     console.log("handleNavigate: Navegando para a tela:", screen);
     setViewingOtherUser(null);
-    // Só limpa chattingWith se NÃO estivermos navegando para a tela de chat
-    if (screen !== Screen.Chat) {
-      setChattingWith(null);
-    }
+    setChattingWith(null);
     setHistory(prev => [...prev, screen]);
   };
 
@@ -476,26 +461,23 @@ const App: React.FC = () => {
     setChattingWith(user);
     handleNavigate(Screen.Chat);
   };
-  
   const handleCreateProfile = () => {
     console.log("handleCreateProfile: Navegando para a tela de criação de perfil.");
     handleNavigate(Screen.CreateProfile);
   }
-  
   const handleBack = () => {
     console.log("handleBack: Voltando na navegação.");
     if (viewingOtherUser) {
       setViewingOtherUser(null);
       console.log("handleBack: Limpando viewingOtherUser.");
     } else if (history.length > 1) {
-      setChattingWith(null); 
+      setChattingWith(null);
       setHistory(prev => prev.slice(0, -1));
       console.log("handleBack: Voltando para a tela anterior, histórico atual:", history.slice(0, -1));
     } else {
       console.log("handleBack: Não há mais telas para voltar.");
     }
   }
-  
   const handleSaveProfile = async (updatedUser: User) => {
       if (!currentUser) {
         toast.error('Usuário atual não encontrado para salvar o perfil.');
@@ -642,7 +624,6 @@ const App: React.FC = () => {
         toast.error(`Erro inesperado ao processar conexão: ${e.message || 'Verifique o console.'}`);
       }
   };
-  
   const handleSendMessage = async (chatPartnerId: string, text: string) => {
       if (!currentUser) {
         toast.error('Você precisa estar logado para enviar mensagens.');
@@ -650,71 +631,83 @@ const App: React.FC = () => {
       }
       console.log(`handleSendMessage: Tentando enviar mensagem para ${chatPartnerId}: "${text}"`);
 
-      const tempMessageId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-      console.log(`handleSendMessage: Usando ID otimista: ${tempMessageId}`);
+      // 1. Optimistic UI Update
       const optimisticMessage: Message = {
-          id: tempMessageId,
-          text: text,
-          time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-          senderId: currentUser.id,
-          avatar: currentUser.avatar,
+        id: `temp-${Date.now()}`, // Temporary unique ID
+        text: text,
+        time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        senderId: currentUser.id,
+        avatar: currentUser.avatar,
       };
 
-      // Optimistic update: Add the temporary message to the chat
       setChats(prevChats => {
-          const newChats = [...prevChats];
-          const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
-          if (chatIndex > -1) {
-              newChats[chatIndex].messages = [...newChats[chatIndex].messages, optimisticMessage];
-          } else {
-              const partner = users.find(u => u.id === chatPartnerId);
-              if (partner) {
-                newChats.push({ id: chatPartnerId, contact: partner, messages: [optimisticMessage] });
-              }
+        const newChats = [...prevChats];
+        const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
+        if (chatIndex > -1) {
+          newChats[chatIndex].messages.push(optimisticMessage);
+        } else {
+          // This case should ideally not happen if a chat screen is open
+          const chatPartner = users.find(u => u.id === chatPartnerId);
+          if (chatPartner) {
+            newChats.push({
+              id: chatPartnerId,
+              contact: chatPartner,
+              messages: [optimisticMessage],
+            });
           }
-          return newChats;
+        }
+        return newChats;
       });
 
+      // 2. Send to database
       try {
-        // A linha abaixo foi removida, pois o gerenciamento de mensagens agora é feito via Supabase.
-        // db.addMessage(chatPartnerId, newMessage); 
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('messages')
           .insert({
             sender_id: currentUser.id,
             receiver_id: chatPartnerId,
             content: text,
-          });
-          // .select() // Removed .select() as we don't need the data back here for replacement
+          })
+          .select()
+          .single();
 
         if (error) {
           console.error('handleSendMessage: Erro ao enviar mensagem:', error);
           toast.error(`Erro ao enviar mensagem: ${error.message}`);
-          // Rollback optimistic update on error
+          // Revert optimistic update on failure
           setChats(prevChats => {
-              const newChats = [...prevChats];
-              const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
-              if (chatIndex > -1) {
-                  newChats[chatIndex].messages = newChats[chatIndex].messages.filter(msg => msg.id !== tempMessageId);
-              }
-              return newChats;
+             const newChats = [...prevChats];
+             const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
+             if (chatIndex > -1) {
+                newChats[chatIndex].messages = newChats[chatIndex].messages.filter(m => m.id !== optimisticMessage.id);
+             }
+             return newChats;
           });
         } else {
-          console.log('handleSendMessage: Mensagem enviada com sucesso para Supabase. Real-time listener irá lidar com a atualização final.');
-          // No explicit replacement here. The real-time listener will handle it.
+          console.log('handleSendMessage: Mensagem enviada com sucesso para Supabase:', data);
+          // Replace optimistic message with the real one from the DB
+          setChats(prevChats => {
+            const newChats = [...prevChats];
+            const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
+            if (chatIndex > -1) {
+               const messageIndex = newChats[chatIndex].messages.findIndex(m => m.id === optimisticMessage.id);
+               if (messageIndex > -1) {
+                  const realMessage: Message = {
+                    id: data.id,
+                    text: data.content,
+                    time: new Date(data.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                    senderId: data.sender_id,
+                    avatar: currentUser.avatar,
+                  };
+                  newChats[chatIndex].messages[messageIndex] = realMessage;
+               }
+            }
+            return newChats;
+          });
         }
       } catch (e: any) {
         console.error('handleSendMessage: Erro inesperado ao enviar mensagem:', e);
         toast.error(`Erro inesperado ao enviar mensagem: ${e.message || 'Verifique o console.'}`);
-        // Rollback optimistic update on unexpected error
-        setChats(prevChats => {
-            const newChats = [...prevChats];
-            const chatIndex = newChats.findIndex(c => c.contact.id === chatPartnerId);
-            if (chatIndex > -1) {
-                newChats[chatIndex].messages = newChats[chatIndex].messages.filter(msg => msg.id !== tempMessageId);
-            }
-            return newChats;
-        });
       }
   };
 
@@ -782,15 +775,15 @@ const App: React.FC = () => {
   const renderScreen = () => {
     if (chattingWith && activeScreen === Screen.Chat && currentUser) {
       const chat = chats.find(c => c.contact.id === chattingWith.id);
-      return <ChatScreen 
-                user={chattingWith} 
-                messages={chat?.messages || []} 
-                onBack={handleBack} 
-                onSendMessage={(text) => handleSendMessage(chattingWith.id, text)} 
+      return <ChatScreen
+                user={chattingWith}
+                messages={chat?.messages || []}
+                onBack={handleBack}
+                onSendMessage={(text) => handleSendMessage(chattingWith.id, text)}
                 currentUserId={currentUser.id}
              />;
     }
-    
+
     switch (activeScreen) {
       case Screen.Home:
         return currentUser ? <HomeScreen currentUser={currentUser} onNavigate={handleNavigate} /> : <div className="p-4 text-center">Carregando...</div>;
@@ -799,12 +792,12 @@ const App: React.FC = () => {
         const searchableUsers = users.filter(u => u.id !== currentUser?.id && !connectedUserIds.has(u.id));
         return <SearchScreen users={searchableUsers} onUserClick={handleViewOtherUser} onBack={handleBack} onNavigate={handleNavigate} />;
       case Screen.Connections:
-        return <ConnectionsScreen 
-                  connections={connections} 
+        return <ConnectionsScreen
+                  connections={connections}
                   acceptedConnections={acceptedConnections}
-                  onConnectionAction={handleConnectionAction} 
+                  onConnectionAction={handleConnectionAction}
                   onUserClick={handleStartChat}
-                  onBack={handleBack} 
+                  onBack={handleBack}
                />;
       case Screen.Messages:
           return <MessagesScreen chats={chats} onChatClick={handleStartChat} onBack={handleBack} />;
@@ -818,7 +811,6 @@ const App: React.FC = () => {
         return <HomeScreen currentUser={currentUser!} onNavigate={handleNavigate} />;
     }
   };
-  
   const renderContent = () => {
       if (isAuthenticated === null) {
           return <div className="flex-1 flex items-center justify-center"><p className="text-white">Carregando...</p></div>;
@@ -851,7 +843,7 @@ const App: React.FC = () => {
                 onClose={() => setViewingOtherUser(null)}
                 onSendConnectionRequest={handleSendConnectionRequest}
                 isConnectionPending={sentConnectionRequests.some(req => req.receiver_id === viewingOtherUser.id && req.status === 'pending')}
-                isConnected={acceptedConnections.some(conn => 
+                isConnected={acceptedConnections.some(conn =>
                     (conn.sender_id === currentUser.id && conn.receiver_id === viewingOtherUser.id) ||
                     (conn.receiver_id === currentUser.id && conn.sender_id === viewingOtherUser.id)
                 )}
