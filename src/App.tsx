@@ -446,8 +446,8 @@ const App: React.FC = () => {
 
   const handleNavigate = (screen: Screen) => {
     console.log("handleNavigate: Navegando para a tela:", screen);
-    setViewingOtherUser(null);
-    setChattingWith(null);
+    setViewingOtherUser(null); // Limpa o usuário sendo visualizado ao navegar
+    // setChattingWith(null); // REMOVIDO: Não deve limpar chattingWith ao navegar para o chat
     setHistory((prev: Screen[]) => [...prev, screen]);
   };
 
@@ -471,7 +471,7 @@ const App: React.FC = () => {
       setViewingOtherUser(null);
       console.log("handleBack: Limpando viewingOtherUser.");
     } else if (history.length > 1) {
-      setChattingWith(null);
+      setChattingWith(null); // Limpa chattingWith ao voltar de um chat
       setHistory((prev: Screen[]) => prev.slice(0, -1));
       console.log("handleBack: Voltando para a tela anterior, histórico atual:", history.slice(0, -1));
     } else {
