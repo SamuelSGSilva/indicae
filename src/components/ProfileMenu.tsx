@@ -10,7 +10,7 @@ interface ProfileMenuProps {
 
 const ProfileMenu: React.FC<ProfileMenuProps> = ({ onEditProfile, onLogout, onToggleTheme, theme, onClose }) => {
   return (
-    <div className="absolute top-16 right-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg w-48 text-gray-800 dark:text-white">
+    <div className="absolute top-14 right-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg w-48 text-gray-800 dark:text-white z-20">
       <ul>
         <li className="py-2 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer" onClick={onEditProfile}>
           Editar Perfil
