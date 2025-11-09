@@ -304,18 +304,20 @@ const App: React.FC = () => {
     if (currentUser && acceptedConnections.length > 0 && users.length > 0) {
       console.log("useEffect (loadAllChats): Iniciando carregamento de chats para conexões aceitas.");
       const loadAllChats = async () => {
-        const chatThreads: ChatThread[] = [];
+        const chatThreadsMap = new Map<string, ChatThread>(); // Use a Map to ensure uniqueness by contact ID
         for (const conn of acceptedConnections) {
           const chatPartner = conn.user;
-          const messages = await fetchMessages(currentUser.id, chatPartner.id);
-          chatThreads.push({
-            id: conn.id, // Using connection ID as chat thread ID for simplicity
-            contact: chatPartner,
-            messages: messages,
-          });
+          if (!chatThreadsMap.has(chatPartner.id)) { // Only add if not already present
+            const messages = await fetchMessages(currentUser.id, chatPartner.id);
+            chatThreadsMap.set(chatPartner.id, {
+              id: chatPartner.id, // Use chat partner ID for unique chat thread
+              contact: chatPartner,
+              messages: messages,
+            });
+          }
         }
-        setChats(chatThreads);
-        console.log("useEffect (loadAllChats): Chats carregados do Supabase:", chatThreads);
+        setChats(Array.from(chatThreadsMap.values())); // Convert map values back to array
+        console.log("useEffect (loadAllChats): Chats carregados do Supabase:", Array.from(chatThreadsMap.values()));
       };
       loadAllChats();
     } else if (currentUser && acceptedConnections.length === 0) {
@@ -348,21 +350,16 @@ const App: React.FC = () => {
             event: 'INSERT',
             schema: 'public',
             table: 'messages',
-            filter: `sender_id=eq.${currentUser.id}.or.receiver_id=eq.${currentUser.id}`,
+            // MUDANÇA AQUI: Apenas escutar mensagens onde o usuário atual é o RECEIVER
+            filter: `receiver_id=eq.${currentUser.id}`, 
           },
           (payload) => {
             console.log('Realtime: Nova mensagem recebida!', payload);
             const newMessageData = payload.new as any;
 
-            console.log("Realtime: newMessageData.sender_id:", newMessageData.sender_id, "currentUser.id:", currentUser.id);
-            console.log("Realtime: Are they equal?", newMessageData.sender_id === currentUser.id);
-
-            // Ignore messages sent by the current user to prevent duplication
-            if (newMessageData.sender_id === currentUser.id) {
-              console.log("Realtime: Mensagem ignorada (enviada pelo usuário atual).");
-              return;
-            }
-
+            // Não precisamos mais verificar sender_id === currentUser.id aqui,
+            // pois o filtro já garante que só recebemos mensagens onde somos o receiver.
+            
             const sender = users.find((u: User) => u.id === newMessageData.sender_id);
             const receiver = users.find((u: User) => u.id === newMessageData.receiver_id);
 
@@ -371,15 +368,15 @@ const App: React.FC = () => {
               return;
             }
 
-            const chatPartnerId = newMessageData.sender_id === currentUser.id ? newMessageData.receiver_id : newMessageData.sender_id;
-            const chatPartner = chatPartnerId === sender.id ? sender : receiver;
+            const chatPartnerId = newMessageData.sender_id; // O parceiro de chat é o remetente
+            const chatPartner = sender;
 
             const newMessage: Message = {
               id: newMessageData.id,
               text: newMessageData.content,
               time: new Date(newMessageData.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
               senderId: newMessageData.sender_id,
-              avatar: chatPartner.avatar || '', // Simplified avatar logic, as sender's own messages are ignored
+              avatar: chatPartner.avatar || '',
             };
             console.log("Realtime: Objeto newMessage construído:", newMessage);
 
