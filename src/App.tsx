@@ -184,7 +184,7 @@ const App: React.FC = () => {
 
     const mappedAcceptedConns: ConnectionRequest[] = rawAcceptedConns?.map((req: any) => mapRequestToConnection(req, req.sender_id === userId)) || [];
     setAcceptedConnections(mappedAcceptedConns);
-    console.log("fetchConnections: Conexões aceitas mapeadas e definidas no estado 'acceptedConnections':", mappedAcceptedConns);
+    console.log("fetchConnections: Accepted connections set:", mappedAcceptedConns); // Log para verificar duplicatas
   }, []);
 
   // Function to fetch messages for a specific chat partner
@@ -247,7 +247,7 @@ const App: React.FC = () => {
             avatar: profile.avatar_url || `https://picsum.photos/seed/${profile.id}/200/200`,
             education: profile.education || '',
             softSkills: profile.soft_skills || [],
-            hardSkills: profile.hard_skills || [],
+            hardSkills: profile.hard_skills || [], // FIX: Changed from profile.hardSkills to profile.hard_skills
             email: session.user.email || '',
           };
           setCurrentUser(user);
@@ -457,15 +457,16 @@ const App: React.FC = () => {
       .subscribe();
 
     return () => {
-      console.log('Realtime: Desinscrevendo-se do canal de atualizações de conexões.');
-      supabase.removeChannel(connectionsChannel);
+      if (connectionsChannel) {
+        console.log('Realtime: Desinscrevendo-se do canal de atualizações de conexões.');
+        supabase.removeChannel(connectionsChannel);
+      }
     };
   }, [currentUser, users, fetchConnections]);
 
   const handleNavigate = (screen: Screen) => {
     console.log("handleNavigate: Navegando para a tela:", screen);
     setViewingOtherUser(null); // Limpa o usuário sendo visualizado ao navegar
-    // setChattingWith(null); // REMOVIDO: Não deve limpar chattingWith ao navegar para o chat
     setHistory((prev: Screen[]) => [...prev, screen]);
   };
 
@@ -640,6 +641,7 @@ const App: React.FC = () => {
       }
   };
   const handleSendMessage = async (chatPartnerId: string, text: string) => {
+      console.count('handleSendMessage call'); // Contagem de chamadas
       if (!currentUser) {
         toast.error('Você precisa estar logado para enviar mensagens.');
         return;
@@ -655,13 +657,13 @@ const App: React.FC = () => {
         avatar: currentUser.avatar,
       };
 
+      console.log("handleSendMessage: Optimistic message added to state:", optimisticMessage);
       setChats((prevChats: ChatThread[]) => {
         const newChats = [...prevChats];
         const chatIndex = newChats.findIndex((c: ChatThread) => c.contact.id === chatPartnerId);
         if (chatIndex > -1) {
           newChats[chatIndex].messages.push(optimisticMessage);
         } else {
-          // This case should ideally not happen if a chat screen is open
           const chatPartner = users.find((u: User) => u.id === chatPartnerId);
           if (chatPartner) {
             newChats.push({
@@ -676,6 +678,7 @@ const App: React.FC = () => {
 
       // 2. Send to database
       try {
+        console.log("handleSendMessage: Sending message to Supabase...");
         const { data, error } = await supabase
           .from('messages')
           .insert({
@@ -687,7 +690,7 @@ const App: React.FC = () => {
           .single();
 
         if (error) {
-          console.error('handleSendMessage: Erro ao enviar mensagem:', error);
+          console.error('handleSendMessage: Erro ao enviar mensagem para Supabase:', error);
           toast.error(`Erro ao enviar mensagem: ${error.message}`);
           // Revert optimistic update on failure
           setChats((prevChats: ChatThread[]) => {
@@ -695,11 +698,12 @@ const App: React.FC = () => {
              const chatIndex = newChats.findIndex((c: ChatThread) => c.contact.id === chatPartnerId);
              if (chatIndex > -1) {
                 newChats[chatIndex].messages = newChats[chatIndex].messages.filter((m: Message) => m.id !== optimisticMessage.id);
+                console.log("handleSendMessage: Optimistic message reverted on error. New chat state:", newChats[chatIndex].messages);
              }
              return newChats;
           });
         } else {
-          console.log('handleSendMessage: Mensagem enviada com sucesso para Supabase:', data);
+          console.log('handleSendMessage: Mensagem enviada com sucesso para Supabase. Data:', data);
           // Replace optimistic message with the real one from the DB
           setChats((prevChats: ChatThread[]) => {
             const newChats = [...prevChats];
@@ -715,6 +719,21 @@ const App: React.FC = () => {
                     avatar: currentUser.avatar,
                   };
                   newChats[chatIndex].messages[messageIndex] = realMessage;
+                  console.log("handleSendMessage: Optimistic message replaced with real message. New chat state:", newChats[chatIndex].messages);
+               } else {
+                   // This case means the optimistic message was not found.
+                   // This could happen if the chat was just created and the optimistic message was the first one,
+                   // and the chatIndex was found, but the message itself wasn't.
+                   // Or if the state update was somehow missed.
+                   // If the optimistic message wasn't found, we should just add the real message.
+                   newChats[chatIndex].messages.push({
+                        id: data.id,
+                        text: data.content,
+                        time: new Date(data.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                        senderId: data.sender_id,
+                        avatar: currentUser.avatar,
+                   });
+                   console.warn("handleSendMessage: Optimistic message not found for replacement, adding real message. New chat state:", newChats[chatIndex].messages);
                }
             }
             return newChats;
