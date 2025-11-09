@@ -1,11 +1,11 @@
 import React from 'react';
-import { User } from '../types'; // Caminho atualizado
-import { icons, calculateAge, getColorForSkill } from '../constants'; // Caminho atualizado
+import { User } from '../types';
+import { icons, calculateAge, getColorForSkill } from '../constants';
 
 interface UserProfileScreenProps {
   user: User;
   onEdit: () => void;
-  onLogout: () => void;
+  // onLogout: () => void; // Removed as it's not directly used here
 }
 
 const SkillTag: React.FC<{ skill: string, color: string }> = ({ skill, color }) => (
@@ -24,7 +24,7 @@ const InfoItem: React.FC<{ icon: React.ReactNode; label: string; value: string |
   </div>
 );
 
-const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ user, onEdit, onLogout }) => {
+const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ user, onEdit }) => {
   const hasSoftSkills = user.softSkills && user.softSkills.length > 0;
   const hasHardSkills = user.hardSkills && user.hardSkills.length > 0;
 
@@ -79,7 +79,7 @@ const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ user, onEdit, onL
                     </div>
                     {hasSoftSkills ? (
                         <div className="flex flex-wrap gap-2">
-                            {user.softSkills?.map((skill, index) => <SkillTag key={index} skill={skill} color={getColorForSkill(skill)}/>)}
+                            {user.softSkills?.map((skill: string, index: number) => <SkillTag key={index} skill={skill} color={getColorForSkill(skill)}/>)}
                         </div>
                     ) : <p className="text-gray-400 text-sm">Nenhuma skill adicionada.</p>}
                 </div>
@@ -91,7 +91,7 @@ const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ user, onEdit, onL
                     </div>
                     {hasHardSkills ? (
                         <div className="flex flex-wrap gap-2">
-                            {user.hardSkills?.map((skill, index) => <SkillTag key={index} skill={skill} color={getColorForSkill(skill)}/>)}
+                            {user.hardSkills?.map((skill: string, index: number) => <SkillTag key={index} skill={skill} color={getColorForSkill(skill)}/>)}
                         </div>
                     ) : <p className="text-gray-400 text-sm">Nenhuma skill adicionada.</p>}
                 </div>

@@ -801,7 +801,7 @@ const App: React.FC = () => {
       case Screen.Messages:
           return <MessagesScreen chats={chats} onChatClick={handleStartChat} onBack={handleBack} />;
       case Screen.Profile:
-        return currentUser ? <UserProfileScreen user={currentUser} onEdit={() => setProfileMenuOpen(true)} onLogout={handleLogout} /> : <div className="p-4 text-center text-gray-800">Carregando perfil...</div>;
+        return currentUser ? <UserProfileScreen user={currentUser} onEdit={() => setProfileMenuOpen(true)} /> : <div className="p-4 text-center text-gray-800">Carregando perfil...</div>;
       case Screen.CreateProfile:
         return currentUser ? <CreateProfileScreen user={currentUser} onBack={handleBack} onSave={handleSaveProfile}/> : <div className="p-4 text-center text-gray-800">Carregando...</div>;
       case Screen.SkillSearch:

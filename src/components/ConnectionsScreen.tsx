@@ -59,7 +59,7 @@ const ConnectionsScreen: React.FC<ConnectionsScreenProps> = ({ connections, acce
   return (
     <div className="w-full min-h-full bg-[#0B1526] flex flex-col">
       <header className="p-4 flex justify-between items-center flex-shrink-0">
-        <div className="w-6 h-6" />
+        <button onClick={onBack} className="text-white">{icons.back('w-6 h-6')}</button>
         <h1 className="text-xl font-bold text-white">Conexões</h1>
         <div className="w-6 h-6" />
       </header>
