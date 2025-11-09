@@ -294,7 +294,7 @@ const App: React.FC = () => {
     db.initialize(); // Removed unused 'data' variable
 
     return () => {
-      console.log('Realtime: Desinscrevendo-se do canal de mensagens.');
+      console.log('Realtime: Desinscrevendo-se do canal de autenticação.');
       authListener.subscription.unsubscribe();
     };
   }, [fetchConnections, fetchAllUsers]);
@@ -327,82 +327,103 @@ const App: React.FC = () => {
 
   // Real-time subscription for new messages
   useEffect(() => {
-    if (!currentUser) {
-      console.log("Realtime: currentUser não disponível, pulando inscrição de mensagens.");
-      return;
+    let channel: any; // Declare channel outside the if block
+
+    if (currentUser?.id) { // Only subscribe if currentUser.id exists
+      const channelName = `messages_channel_${currentUser.id}`;
+      
+      // Ensure any previous channel with this name is removed
+      const existingChannel = supabase.getChannels().find(ch => ch.topic === `realtime:${channelName}`);
+      if (existingChannel) {
+        console.log(`Realtime: Removendo canal existente '${channelName}' antes de recriar.`);
+        supabase.removeChannel(existingChannel);
+      }
+
+      console.log(`Realtime: Inscrevendo-se em mensagens para o usuário: ${currentUser.id} no canal: ${channelName}`);
+      channel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages',
+            filter: `sender_id=eq.${currentUser.id}.or.receiver_id=eq.${currentUser.id}`,
+          },
+          (payload) => {
+            console.log('Realtime: Nova mensagem recebida!', payload);
+            const newMessageData = payload.new as any;
+
+            console.log("Realtime: newMessageData.sender_id:", newMessageData.sender_id, "currentUser.id:", currentUser.id);
+            console.log("Realtime: Are they equal?", newMessageData.sender_id === currentUser.id);
+
+            // Ignore messages sent by the current user to prevent duplication
+            if (newMessageData.sender_id === currentUser.id) {
+              console.log("Realtime: Mensagem ignorada (enviada pelo usuário atual).");
+              return;
+            }
+
+            const sender = users.find((u: User) => u.id === newMessageData.sender_id);
+            const receiver = users.find((u: User) => u.id === newMessageData.receiver_id);
+
+            if (!sender || !receiver) {
+              console.warn('Realtime: Perfil do remetente ou destinatário não encontrado para nova mensagem:', newMessageData);
+              return;
+            }
+
+            const chatPartnerId = newMessageData.sender_id === currentUser.id ? newMessageData.receiver_id : newMessageData.sender_id;
+            const chatPartner = chatPartnerId === sender.id ? sender : receiver;
+
+            const newMessage: Message = {
+              id: newMessageData.id,
+              text: newMessageData.content,
+              time: new Date(newMessageData.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+              senderId: newMessageData.sender_id,
+              avatar: chatPartner.avatar || '', // Simplified avatar logic, as sender's own messages are ignored
+            };
+            console.log("Realtime: Objeto newMessage construído:", newMessage);
+
+            setChats((prevChats: ChatThread[]) => {
+              const newChats = [...prevChats];
+              const chatIndex = newChats.findIndex((c: ChatThread) => c.contact.id === chatPartnerId);
+
+              if (chatIndex > -1) {
+                // Check for message existence before adding
+                const messageExists = newChats[chatIndex].messages.some((m: Message) => m.id === newMessage.id);
+                if (!messageExists) {
+                  newChats[chatIndex].messages = [...newChats[chatIndex].messages, newMessage];
+                }
+              } else {
+                // Create new chat thread if it doesn't exist
+                newChats.push({
+                  id: chatPartnerId,
+                  contact: chatPartner,
+                  messages: [newMessage],
+                });
+              }
+              console.log("Realtime: Estado 'chats' após atualização:", newChats);
+              return newChats;
+            });
+          }
+        )
+        .subscribe();
+    } else {
+      // If currentUser.id is null, ensure all messages_channel_ related channels are removed
+      console.log("Realtime: currentUser não disponível, limpando todos os canais de mensagem.");
+      supabase.getChannels().forEach(ch => {
+        if (ch.topic.startsWith('realtime:messages_channel_')) {
+          supabase.removeChannel(ch);
+        }
+      });
     }
 
-    console.log(`Realtime: Inscrevendo-se em mensagens para o usuário: ${currentUser.id}`);
-    const channel = supabase
-      .channel('messages_channel')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `sender_id=eq.${currentUser.id}.or.receiver_id=eq.${currentUser.id}`,
-        },
-        (payload) => {
-          console.log('Realtime: Nova mensagem recebida!', payload);
-          const newMessageData = payload.new as any;
-
-          // Ignore messages sent by the current user to prevent duplication
-          if (newMessageData.sender_id === currentUser.id) {
-            console.log("Realtime: Mensagem ignorada (enviada pelo usuário atual).");
-            return;
-          }
-
-          const sender = users.find((u: User) => u.id === newMessageData.sender_id);
-          const receiver = users.find((u: User) => u.id === newMessageData.receiver_id);
-
-          if (!sender || !receiver) {
-            console.warn('Realtime: Perfil do remetente ou destinatário não encontrado para nova mensagem:', newMessageData);
-            return;
-          }
-
-          const chatPartnerId = newMessageData.sender_id === currentUser.id ? newMessageData.receiver_id : newMessageData.sender_id;
-          const chatPartner = chatPartnerId === sender.id ? sender : receiver;
-
-          const newMessage: Message = {
-            id: newMessageData.id,
-            text: newMessageData.content,
-            time: new Date(newMessageData.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-            senderId: newMessageData.sender_id,
-            avatar: (newMessageData.sender_id === currentUser.id ? currentUser.avatar : chatPartner.avatar) || '',
-          };
-          console.log("Realtime: Objeto newMessage construído:", newMessage);
-
-          setChats((prevChats: ChatThread[]) => {
-            const newChats = [...prevChats];
-            const chatIndex = newChats.findIndex((c: ChatThread) => c.contact.id === chatPartnerId);
-
-            if (chatIndex > -1) {
-              // Check for message existence before adding
-              const messageExists = newChats[chatIndex].messages.some((m: Message) => m.id === newMessage.id);
-              if (!messageExists) {
-                newChats[chatIndex].messages = [...newChats[chatIndex].messages, newMessage];
-              }
-            } else {
-              // Create new chat thread if it doesn't exist
-              newChats.push({
-                id: chatPartnerId,
-                contact: chatPartner,
-                messages: [newMessage],
-              });
-            }
-            console.log("Realtime: Estado 'chats' após atualização:", newChats);
-            return newChats;
-          });
-        }
-      )
-      .subscribe();
-
     return () => {
-      console.log('Realtime: Desinscrevendo-se do canal de mensagens.');
-      supabase.removeChannel(channel);
+      if (channel) {
+        console.log(`Realtime: Desinscrevendo-se do canal de mensagens '${channel.topic}'.`);
+        supabase.removeChannel(channel);
+      }
     };
-  }, [currentUser, users]);
+  }, [currentUser?.id, users]); // Depend on currentUser.id for re-subscription, and users for avatar lookup
 
   // Real-time subscription for connection updates
   useEffect(() => {
@@ -579,7 +600,6 @@ const App: React.FC = () => {
 
   const handleConnectionAction = async (connectionId: string, action: 'accept' | 'reject') => {
       if (!currentUser) {
-        console.error('handleConnectionAction: currentUser não definido.');
         toast.error('Usuário não autenticado.');
         return;
       }
@@ -596,8 +616,6 @@ const App: React.FC = () => {
 
         if (error) {
           console.error(`handleConnectionAction: Erro ao ${action} conexão:`, error);
-          if (error.details) console.error('Supabase Error Details:', error.details);
-          if (error.hint) console.error('Supabase Error Hint:', error.hint);
           toast.error(`Erro ao ${action === 'accept' ? 'aceitar' : 'recusar'} conexão: ${error.message}`);
         } else {
           if (!data || data.length === 0) {
