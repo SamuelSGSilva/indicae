@@ -1,5 +1,5 @@
 {
-  "name": "indicai",
+  "name": "indicae",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -15,6 +15,7 @@
     "react-hot-toast": "^2.6.0"
   },
   "devDependencies": {
+    "@dyad-sh/react-vite-component-tagger": "^0.8.0",
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
     "rollup-plugin-visualizer": "^6.0.5",

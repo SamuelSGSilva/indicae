@@ -461,12 +461,10 @@ const App: React.FC = () => {
     setChattingWith(user);
     handleNavigate(Screen.Chat);
   };
-
   const handleCreateProfile = () => {
     console.log("handleCreateProfile: Navegando para a tela de criação de perfil.");
     handleNavigate(Screen.CreateProfile);
   }
-
   const handleBack = () => {
     console.log("handleBack: Voltando na navegação.");
     if (viewingOtherUser) {
@@ -480,7 +478,6 @@ const App: React.FC = () => {
       console.log("handleBack: Não há mais telas para voltar.");
     }
   }
-
   const handleSaveProfile = async (updatedUser: User) => {
       if (!currentUser) {
         toast.error('Usuário atual não encontrado para salvar o perfil.');
@@ -627,7 +624,6 @@ const App: React.FC = () => {
         toast.error(`Erro inesperado ao processar conexão: ${e.message || 'Verifique o console.'}`);
       }
   };
-
   const handleSendMessage = async (chatPartnerId: string, text: string) => {
       if (!currentUser) {
         toast.error('Você precisa estar logado para enviar mensagens.');
@@ -815,7 +811,6 @@ const App: React.FC = () => {
         return <HomeScreen currentUser={currentUser!} onNavigate={handleNavigate} />;
     }
   };
-
   const renderContent = () => {
       if (isAuthenticated === null) {
           return <div className="flex-1 flex items-center justify-center"><p className="text-white">Carregando...</p></div>;

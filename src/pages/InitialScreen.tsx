@@ -9,7 +9,7 @@ const InitialScreen: React.FC<InitialScreenProps> = ({ onNavigateToLogin, onNavi
   return (
     <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-[#0B1526] text-white">
       <div className="w-full max-w-xs text-center">
-        <h1 className="text-5xl font-bold text-white mb-2">Indicai</h1>
+        <h1 className="text-5xl font-bold text-white mb-2">Indicae</h1>
         <p className="text-gray-400 mb-10">Conectando talentos.</p>
 
         <div className="space-y-4">
