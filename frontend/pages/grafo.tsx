@@ -117,7 +117,7 @@ export default function Grafo() {
             backgroundColor="#050816"
             onNodeHover={setHoveredNode}
             onNodeClick={(node) => {
-              if (fgRef.current) {
+              if (fgRef.current && typeof fgRef.current.cameraPosition === 'function') {
                 fgRef.current.cameraPosition(
                   { x: node.x! * 1.2, y: node.y! * 1.2, z: node.z! * 1.2 },
                   node as any,

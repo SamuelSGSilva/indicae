@@ -7,14 +7,43 @@ from fastapi.middleware.cors import CORSMiddleware
 from gemini_ai import get_intention_embedding
 import requests
 import httpx
+import socket
 import os
 import base64
 from dotenv import load_dotenv
 
+# ─── Fix Total: Monkey Patch global no resolver de DNS via Socket (bypass VPN) ────
+# O Windows + VPN as vezes não resolve o dns pelo Python.
+import socket
+_original_getaddrinfo = socket.getaddrinfo
+
+# IPs hardcoded do GitHub (Fallbacks seguros quando getaddrinfo original falhar)
+GITHUB_IPS = {
+    "github.com": "140.82.112.4",
+    "api.github.com": "140.82.112.5"
+}
+
+def patched_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+    if host in GITHUB_IPS:
+        return _original_getaddrinfo(GITHUB_IPS[host], port, family, type, proto, flags)
+    return _original_getaddrinfo(host, port, family, type, proto, flags)
+
+socket.getaddrinfo = patched_getaddrinfo
+
+def _github_client() -> httpx.Client:
+    """Retorna um httpx.Client padrão mas que agora herdará o socket patcheado do sistema"""
+    transport = httpx.HTTPTransport(retries=2)
+    return httpx.Client(
+        trust_env=False,   # Ignora System Proxies se a VPN injetar algo esquisito
+        verify=False,      # Opcional, ignora verificação ssl temporariamente (se houver proxy TLS)
+        timeout=15.0,
+        transport=transport,
+    )
+
 load_dotenv(override=True)
 GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID", "")
 GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET", "")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://127.0.0.1:4455")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
 
 # Cria tabelas no banco de dados (SQLite/Postgres não importam pro modelo)
@@ -41,9 +70,9 @@ def read_root():
 
 def fetch_github_skills(username: str):
     try:
-        # Puxa os ultimos 10 repositórios para ver o que a pessoa mais codifica
         url = f"https://api.github.com/users/{username}/repos?sort=updated&per_page=10"
-        response = requests.get(url, timeout=5)
+        with _github_client() as client:
+            response = client.get(url)
         if response.status_code == 200:
             repos = response.json()
             languages = set()
@@ -289,41 +318,44 @@ def github_login(bio: str = ""):
 
 @app.get("/api/auth/github/callback")
 def github_callback(code: str, state: str, db: Session = Depends(database.get_db)):
-    """ Callback Oficial da Microsoft! """
+    """ Callback do GitHub OAuth """
     try:
         bio = base64.b64decode(state).decode()
-        
-        # 1. Troca o 'code' temporário por um Token Real de Acesso
-        token_res = requests.post(
-            "https://github.com/login/oauth/access_token",
-            data={
-                "client_id": GITHUB_CLIENT_ID,
-                "client_secret": GITHUB_CLIENT_SECRET,
-                "code": code,
-            },
-            headers={"Accept": "application/json"}
-        )
-        token_data = token_res.json()
-        access_token = token_data.get("access_token")
-        
-        if not access_token:
-            return RedirectResponse(f"{FRONTEND_URL}/cadastro?error=github_token_failed")
 
-        # 2. Requisita os Dados Imutáveis do Usuário
-        user_res = requests.get(
-            "https://api.github.com/user",
-            headers={"Authorization": f"Bearer {access_token}"}
-        )
-        gh_user = user_res.json()
+        with _github_client() as client:
+            # 1. Troca o 'code' temporário por um Token Real de Acesso
+            token_res = client.post(
+                "https://github.com/login/oauth/access_token",
+                data={
+                    "client_id": GITHUB_CLIENT_ID,
+                    "client_secret": GITHUB_CLIENT_SECRET,
+                    "code": code,
+                },
+                headers={"Accept": "application/json"}
+            )
+            token_data = token_res.json()
+            access_token = token_data.get("access_token")
+
+            if not access_token:
+                print(f"GitHub token failed: {token_data}")
+                return RedirectResponse(f"{FRONTEND_URL}/cadastro?error=github_token_failed")
+
+            # 2. Requisita os Dados Imutáveis do Usuário
+            user_res = client.get(
+                "https://api.github.com/user",
+                headers={"Authorization": f"Bearer {access_token}"}
+            )
+            gh_user = user_res.json()
+
+
         gh_username = gh_user.get("login")
         gh_name = gh_user.get("name") or gh_username
         gh_email = gh_user.get("email") or f"{gh_username}@github_fake.com"
-        
-        # 3. Magic Trick: Logar ou Criar (Se for novo, cadastra em tudo: PostgreSQL + Neo4J)
+
+        # 3. Logar ou Criar
         db_user = db.query(models.User).filter(models.User.github_username == gh_username).first()
-        
+
         if not db_user:
-            # Nunca entrou antes, criando! Senha Randomica pois ele sempre usará Github OAuth
             import uuid
             db_user = models.User(
                 name=gh_name,
@@ -336,28 +368,33 @@ def github_callback(code: str, state: str, db: Session = Depends(database.get_db
             db.add(db_user)
             db.commit()
             db.refresh(db_user)
-            
-            # Puxamos tudo do Github dele pros Grafos
+
+            # Puxamos skills do GitHub
             github_skills = fetch_github_skills(gh_username)
             query = """
             MERGE (u:User {id: $id})
             SET u.email = $email, u.name = $name, u.role = $role, u.github = $github, u.bio = $bio
             WITH u
-            FOREACH (skill_name IN $skills | 
+            FOREACH (skill_name IN $skills |
                 MERGE (s:Skill {name: toLower(skill_name)})
                 MERGE (u)-[:HAS_SKILL]->(s)
             )
             RETURN u
             """
-            neo4j_db.query(query, parameters={
-                "id": db_user.id, "email": db_user.email, "name": db_user.name,
-                "role": db_user.role, "github": gh_username, "bio": bio, "skills": github_skills
-            })
-            
-        # 4. Sucesso total: Chuta o cara pro FrontEnd do Next já logado!
+            try:
+                neo4j_db.query(query, parameters={
+                    "id": db_user.id, "email": db_user.email, "name": db_user.name,
+                    "role": db_user.role, "github": gh_username, "bio": bio, "skills": github_skills
+                })
+            except Exception as neo_err:
+                print(f"Neo4j warning (nao critico): {neo_err}")
+
+        # 4. Redireciona pro Frontend logado
         return RedirectResponse(f"{FRONTEND_URL}/?user_id={db_user.id}&user_name={db_user.name}")
-        
+
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         print(f"Erro no OAuth: {str(e)}")
         return RedirectResponse(f"{FRONTEND_URL}/cadastro?error=github_crash")
 
@@ -375,7 +412,7 @@ def validate_skill(validation: schemas.ValidationCreate):
     try:
         neo4j_db.query(query, parameters={
             "validator_id": validation.validator_id,
-            "target_user_id": validation.target_user_id,
+            "target_id": validation.target_user_id,
             "skill_name": validation.skill_name,
             "weight": validation.weight
         })
