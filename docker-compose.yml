@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  # Banco de Dados Principal (Relacional + Vetorial via pgvector)
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: indicae_postgres
+    environment:
+      POSTGRES_USER: indicae_admin
+      POSTGRES_PASSWORD: indicae_password
+      POSTGRES_DB: indicae_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # Banco de Dados de Grafo (Rede Social / Matches)
+  neo4j:
+    image: neo4j:5.12
+    container_name: indicae_neo4j
+    environment:
+      NEO4J_AUTH: neo4j/indicae_password_neo4j
+      # Permite rodar algoritmos na comunidade (APOC e GDS - Graph Data Science)
+      NEO4J_apoc_export_file_enabled: "true"
+      NEO4J_apoc_import_file_enabled: "true"
+      NEO4J_apoc_import_file_use__neo4j__config: "true"
+      NEO4J_PLUGINS: '["apoc"]'
+    ports:
+      - "7474:7474" # Painel Web
+      - "7687:7687" # Conexão BOLT (Usada pelo Backend)
+    volumes:
+      - neo4j_data:/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  neo4j_data:

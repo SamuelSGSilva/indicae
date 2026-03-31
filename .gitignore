@@ -1,0 +1,23 @@
+# Entorno e Segredos
+.env
+venv/
+.venv/
+node_modules/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+
+# Next.js Build
+.next/
+out/
+
+# Mobile Artifacts (Native Code)
+android/
+ios/
+
+# IDE e Outros
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
