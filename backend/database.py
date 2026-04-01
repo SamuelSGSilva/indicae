@@ -14,7 +14,14 @@ if not DATABASE_URL:
     POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
     DATABASE_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
 
-engine = create_engine(DATABASE_URL)
+connect_args = {"check_same_thread": False} if "sqlite" in DATABASE_URL else {}
+
+engine = create_engine(
+    DATABASE_URL, 
+    connect_args=connect_args,
+    pool_pre_ping=True,
+    pool_recycle=300
+)
 
 # Forçar a habilitação do vector no banco (requer permissão no postgres)
 with engine.connect() as conn:
