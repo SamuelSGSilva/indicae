@@ -12,3 +12,4 @@ requests
 httpx
 gunicorn
 pgvector
+email-validator
