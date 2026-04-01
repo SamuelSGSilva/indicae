@@ -127,7 +127,7 @@ export default function Feed() {
           </div>
 
           {loading ? (
-            <div style={{ text: 'center', color: 'var(--text-secondary)' }}>Carregando a rede...</div>
+            <div style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>Carregando a rede...</div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
               {users.filter(u => u.id_referencia !== userId).map((user) => (
