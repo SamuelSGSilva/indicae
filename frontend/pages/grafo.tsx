@@ -104,7 +104,7 @@ export default function Grafo() {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12 }}>
             <div style={{ fontSize: 40 }}>🌐</div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>O Grafo está vazio.</p>
-            <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Cadastre usuários e endosse skills para ver a Malha.</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Cadastre usuários e apoie skills para ver a Malha.</p>
           </div>
         ) : (
           <ForceGraph3D
