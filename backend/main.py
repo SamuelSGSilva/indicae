@@ -165,51 +165,51 @@ def get_user_profile(user_id: int, db: Session = Depends(database.get_db)):
         collect(DISTINCT i.text) AS intentions,
         count(out_v) AS validations_given
     """
+    # Tenta buscar dados do Neo4j; se falhar, usa valores padrão (evita 500)
+    skills = []
+    trust_score = 0
+    intentions = []
+    validations_given = 0
     try:
         results = neo4j_db.query(query_skills, parameters={"id": user_id})
-        skills = []
-        trust_score = 0
-        intentions = []
-        validations_given = 0
-        
         if results:
             record = dict(results[0])
             skills = record.get("skills", [])
             trust_score = record.get("trust_score", 0)
             intentions = record.get("intentions", [])
             validations_given = record.get("validations_given", 0)
-            
             # Lidar com nulls do Neo4j
             skills = [s for s in skills if s]
             intentions = [i for i in intentions if i]
-            
-        # ==========================================
-        # FASE 8: MOTOR DE CONQUISTAS (BADGES)
-        # ==========================================
-        badges = []
-        if trust_score > 0:
-            badges.append({"icon": "🛡️", "name": "Membro Verificado", "desc": "Recebeu confiança da rede"})
-        if trust_score >= 20:
-            badges.append({"icon": "⭐", "name": "Talento de Ouro", "desc": "Autoridade máxima (" + str(trust_score) + " pts)"})
-        if len(skills) >= 5:
-            badges.append({"icon": "🐙", "name": "Poliglota Tech", "desc": f"Domina {len(skills)} tecnologias"})
-        if validations_given > 0:
-            badges.append({"icon": "🤝", "name": "Pilar da Comunidade", "desc": "Fortaleceu a rede endossando colegas"})
+    except Exception:
+        # Neo4j indisponível: retorna dados parciais (só SQL) em vez de 500
+        pass
 
-        return {
-            "id": db_user.id,
-            "name": db_user.name,
-            "email": db_user.email,
-            "role": db_user.role,
-            "github_username": db_user.github_username,
-            "bio": db_user.bio,
-            "trust_score": trust_score or 0,
-            "skills": skills,
-            "intentions": intentions,
-            "badges": badges
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # ==========================================
+    # FASE 8: MOTOR DE CONQUISTAS (BADGES)
+    # ==========================================
+    badges = []
+    if trust_score > 0:
+        badges.append({"icon": "🛡️", "name": "Membro Verificado", "desc": "Recebeu confiança da rede"})
+    if trust_score >= 20:
+        badges.append({"icon": "⭐", "name": "Talento de Ouro", "desc": "Autoridade máxima (" + str(trust_score) + " pts)"})
+    if len(skills) >= 5:
+        badges.append({"icon": "🐙", "name": "Poliglota Tech", "desc": f"Domina {len(skills)} tecnologias"})
+    if validations_given > 0:
+        badges.append({"icon": "🤝", "name": "Pilar da Comunidade", "desc": "Fortaleceu a rede endossando colegas"})
+
+    return {
+        "id": db_user.id,
+        "name": db_user.name,
+        "email": db_user.email,
+        "role": db_user.role,
+        "github_username": db_user.github_username,
+        "bio": db_user.bio,
+        "trust_score": trust_score or 0,
+        "skills": skills,
+        "intentions": intentions,
+        "badges": badges
+    }
 
 @app.put("/api/users/{user_id}/profile")
 def update_user_profile(user_id: int, request: schemas.UserUpdateRequest, db: Session = Depends(database.get_db)):
