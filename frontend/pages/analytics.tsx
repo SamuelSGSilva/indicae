@@ -79,7 +79,7 @@ export default function Analytics() {
                 <h2 style={{ fontSize: '16px', fontWeight: 700, marginBottom: 4, color: 'var(--neon-cyan)' }}>
                   🔥 Top Skills da Rede
                 </h2>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: 20 }}>Habilidades mais endossadas</p>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: 20 }}>Habilidades mais apoiadas</p>
                 {data.top_skills.length > 0 ? (
                   <ResponsiveContainer width="100%" height={240}>
                     <BarChart data={data.top_skills} margin={{ left: -20 }}>
@@ -94,7 +94,7 @@ export default function Analytics() {
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <p style={{ color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', padding: 40 }}>Nenhum dado ainda. Adicione usuários e endosse skills!</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', padding: 40 }}>Nenhum dado ainda. Adicione usuários e apoie skills!</p>
                 )}
               </div>
 
@@ -135,7 +135,7 @@ export default function Analytics() {
                     ))}
                   </div>
                 ) : (
-                  <p style={{ color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', padding: 40 }}>Nenhum alpha ainda. Comece a endossar!</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', padding: 40 }}>Nenhum alpha ainda. Comece a apoiar!</p>
                 )}
               </div>
 
