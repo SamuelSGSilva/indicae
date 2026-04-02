@@ -196,7 +196,7 @@ def get_user_profile(user_id: int, db: Session = Depends(database.get_db)):
     if len(skills) >= 5:
         badges.append({"icon": "🐙", "name": "Poliglota Tech", "desc": f"Domina {len(skills)} tecnologias"})
     if validations_given > 0:
-        badges.append({"icon": "🤝", "name": "Pilar da Comunidade", "desc": "Fortaleceu a rede endossando colegas"})
+        badges.append({"icon": "🤝", "name": "Pilar da Comunidade", "desc": "Fortaleceu a rede apoiando colegas"})
 
     return {
         "id": db_user.id,
@@ -399,8 +399,18 @@ def github_callback(code: str, state: str, db: Session = Depends(database.get_db
         return RedirectResponse(f"{FRONTEND_URL}/cadastro?error=github_crash")
 
 @app.post("/api/network/validate")
-def validate_skill(validation: schemas.ValidationCreate):
-    # Lógica do Grafo: Conecta duas pessoas via uma habilidade com um Peso
+def validate_skill(validation: schemas.ValidationCreate, db: Session = Depends(database.get_db)):
+    # 1. Sempre salva no SQL (persistência garantida)
+    db_validation = models.Validation(
+        validator_id=validation.validator_id,
+        target_user_id=validation.target_user_id,
+        skill_name=validation.skill_name.lower().strip(),
+        weight=validation.weight or 1,
+    )
+    db.add(db_validation)
+    db.commit()
+
+    # 2. Tenta sincronizar com Neo4j (opcional)
     query = """
     MATCH (v:User {id: $validator_id})
     MATCH (t:User {id: $target_id})
@@ -416,10 +426,10 @@ def validate_skill(validation: schemas.ValidationCreate):
             "skill_name": validation.skill_name,
             "weight": validation.weight
         })
-        return {"message": f"Você acabou de endossar a habilidade {validation.skill_name}!"}
-    except Exception as e:
-        # Neo4j indisponível: retorna sucesso parcial (ação SQL já foi salva)
-        return {"message": f"Endosso registrado (grafo temporariamente indisponível)."}
+    except Exception:
+        pass  # Neo4j indisponível, mas já salvou no SQL
+
+    return {"message": f"Você acabou de apoiar a habilidade {validation.skill_name}!"}
 
 # ==========================================================
 # ROTA CORPORATIVA B2B (MONETIZAÇÃO)
@@ -512,35 +522,53 @@ def visualize_network():
         for record in results:
             s_id = str(record["source_id"])
             t_id = str(record["target_id"])
-            
-            # Upsert Source Node
             if s_id not in nodes_dict:
-                nodes_dict[s_id] = {
-                    "id": s_id, 
-                    "label": record["source_label"], 
-                    "name": record["source_name"]
-                }
-            # Upsert Target Node
+                nodes_dict[s_id] = {"id": s_id, "label": record["source_label"], "name": record["source_name"]}
             if t_id not in nodes_dict:
-                nodes_dict[t_id] = {
-                    "id": t_id, 
-                    "label": record["target_label"], 
-                    "name": record["target_name"]
-                }
-            
-            # Add Link
-            links.append({
-                "source": s_id,
-                "target": t_id,
-                "label": record["rel_type"],
-                "weight": record.get("rel_weight") or 1
-            })
+                nodes_dict[t_id] = {"id": t_id, "label": record["target_label"], "name": record["target_name"]}
+            links.append({"source": s_id, "target": t_id, "label": record["rel_type"], "weight": record.get("rel_weight") or 1})
             
         nodes = list(nodes_dict.values())
-        return {"nodes": nodes, "links": links}
-    except Exception as e:
-        # Neo4j indisponível: retorna grafo vazio em vez de 500
-        return {"nodes": [], "links": []}
+        if nodes:
+            return {"nodes": nodes, "links": links}
+        # Neo4j vazio ou indisponível: usa SQL como fallback
+        raise Exception("Neo4j vazio")
+    except Exception:
+        pass
+
+    # ── Fallback SQL: monta grafo a partir das validações salvas no banco relacional ──
+    from sqlalchemy.orm import Session as _Session
+    db: _Session = next(database.get_db())
+    try:
+        users = db.query(models.User).all()
+        validations = db.query(models.Validation).all()
+        skills_map: dict = {}  # skill_name -> node_id
+
+        nodes_dict = {}
+        links = []
+
+        # Nós de usuários
+        for u in users:
+            nodes_dict[f"u{u.id}"] = {"id": f"u{u.id}", "label": "User", "name": u.name}
+
+        # Nós de skills + links
+        skill_counter = 0
+        for v in validations:
+            skill_key = v.skill_name.lower()
+            if skill_key not in skills_map:
+                skill_counter += 1
+                sid = f"s{skill_counter}"
+                skills_map[skill_key] = sid
+                nodes_dict[sid] = {"id": sid, "label": "Skill", "name": v.skill_name}
+            sid = skills_map[skill_key]
+            # target -> skill
+            links.append({"source": f"u{v.target_user_id}", "target": sid, "label": "HAS_SKILL", "weight": 1})
+            # validator -> target
+            links.append({"source": f"u{v.validator_id}", "target": f"u{v.target_user_id}", "label": "APOIOU", "weight": v.weight})
+
+        return {"nodes": list(nodes_dict.values()), "links": links}
+    finally:
+        db.close()
 
 @app.post("/api/intentions")
 def log_intention(intention: schemas.IntentionCreate, db: Session = Depends(database.get_db)):
