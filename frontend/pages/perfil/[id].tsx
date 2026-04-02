@@ -34,8 +34,23 @@ export default function Perfil() {
   useEffect(() => {
     if (!id) return
     fetch(`${API}/api/users/${id}/profile`)
-      .then(r => r.json())
-      .then(data => { setProfile(data); setBioText(data.bio || ''); setLoading(false) })
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
+      .then(data => {
+        // Guard: ensure expected fields exist before setting profile
+        if (data && data.name) {
+          setProfile({
+            ...data,
+            skills: data.skills || [],
+            badges: data.badges || [],
+            intentions: data.intentions || [],
+          })
+          setBioText(data.bio || '')
+        }
+        setLoading(false)
+      })
       .catch(() => setLoading(false))
   }, [id])
 
@@ -100,7 +115,7 @@ export default function Perfil() {
               fontSize: 32, flexShrink: 0,
               animation: 'pulse-glow 3s ease-in-out infinite',
             }}>
-              {profile.name.charAt(0).toUpperCase()}
+              {(profile.name ?? '?').charAt(0).toUpperCase()}
             </div>
 
             <div style={{ flex: 1, minWidth: 200 }}>
