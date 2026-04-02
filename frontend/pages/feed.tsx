@@ -33,7 +33,7 @@ export default function Feed() {
     setUserName(storedName)
 
     fetch(`${API}/api/network/users`)
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
       .then(data => { setUsers(data.matches || []); setLoading(false) })
       .catch(() => setLoading(false))
   }, [])
