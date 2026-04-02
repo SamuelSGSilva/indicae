@@ -29,7 +29,7 @@ export default function Analytics() {
     if (!storedId) { router.push('/login'); return }
     setUserId(Number(storedId)); setUserName(storedName)
     fetch(`${API}/api/analytics/trends`)
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
       .then(d => { setData(d); setLoading(false) })
       .catch(() => setLoading(false))
   }, [])
