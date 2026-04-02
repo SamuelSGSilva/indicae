@@ -77,11 +77,11 @@ export default function Feed() {
             </h2>
             <p style={{ color: 'var(--neon-purple)', fontWeight: 600, marginBottom: 4 }}>{selectedUser.nome}</p>
             <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: 20 }}>
-              Endosse uma habilidade específica desta pessoa na Malha Neural.
+              Apoie uma habilidade específica desta pessoa na Malha Neural.
             </p>
             {upvoteSuccess ? (
               <div style={{ color: 'var(--neon-green)', fontWeight: 600, textAlign: 'center', padding: 20 }}>
-                ✅ Habilidade endossada com sucesso!
+                ✅ Habilidade apoiada com sucesso!
               </div>
             ) : (
               <>
@@ -106,7 +106,7 @@ export default function Feed() {
                   style={{ marginBottom: 16 }}
                 />
                 <button id="btn-confirm-upvote" className="btn btn-primary" onClick={handleUpvote} style={{ width: '100%', justifyContent: 'center', padding: '12px' }}>
-                  ✦ Confirmar Endosso
+                  ✦ Confirmar Apoio
                 </button>
               </>
             )}
@@ -122,7 +122,7 @@ export default function Feed() {
               Feed da <span className="gradient-text">Malha</span>
             </h1>
             <p style={{ color: 'var(--text-secondary)', marginTop: 12, fontSize: '15px' }}>
-              Dê UP (endorse) nas habilidades das pessoas que você conhece e confia.
+              Dê UP nas habilidades das pessoas que você conhece e confia.
             </p>
           </div>
 
