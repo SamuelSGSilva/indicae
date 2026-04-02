@@ -181,7 +181,7 @@ export default function Home() {
                   icon: '🤝',
                   role: 'Mentor / Colega',
                   color: 'var(--neon-cyan)',
-                  desc: 'Endossa habilidades de colegas com seu peso social (+1pt colega, +5pts mentor). Cada like vira uma aresta no Grafo.',
+                  desc: 'Apoie habilidades de colegas com seu peso social (+1pt colega, +5pts mentor). Cada like vira uma aresta no Grafo.',
                   badge: 'VALIDADOR',
                   badgeClass: 'badge-cyan',
                 },
