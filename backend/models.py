@@ -18,6 +18,16 @@ class User(Base):
     
     intentions = relationship("Intention", back_populates="user")
     
+class Validation(Base):
+    __tablename__ = "validations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    validator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    target_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    skill_name = Column(String(150), nullable=False)
+    weight = Column(Integer, default=1)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
 class Intention(Base):
     __tablename__ = "intentions"
 
