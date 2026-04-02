@@ -26,7 +26,10 @@ export default function Grafo() {
     setUserId(Number(storedId)); setUserName(storedName)
 
     fetch(`${API}/api/network/visualize`)
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
       .then(data => {
         setGraphData({
           nodes: data.nodes || [],
