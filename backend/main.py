@@ -68,19 +68,43 @@ app.add_middleware(
 def read_root():
     return {"message": "Bem-vindo à API do Indicae. O Motor está online."}
 
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
+
 def fetch_github_skills(username: str):
     try:
-        url = f"https://api.github.com/users/{username}/repos?sort=updated&per_page=10"
+        headers = {"Accept": "application/vnd.github+json"}
+        if GITHUB_TOKEN:
+            headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
+
+        url = f"https://api.github.com/users/{username}/repos?sort=updated&per_page=30"
         with _github_client() as client:
-            response = client.get(url)
-        if response.status_code == 200:
-            repos = response.json()
-            languages = set()
-            for r in repos:
-                lang = r.get("language")
-                if lang:
-                    languages.add(lang)
-            return list(languages)
+            response = client.get(url, headers=headers)
+
+        if response.status_code != 200:
+            print(f"GitHub API erro {response.status_code} para {username}")
+            return []
+
+        repos = response.json()
+        languages = set()
+
+        for r in repos:
+            # Linguagem principal do repo
+            if r.get("language"):
+                languages.add(r["language"])
+
+            # Busca detalhamento de linguagens do repo (bytes por linguagem)
+            lang_url = r.get("languages_url", "")
+            if lang_url:
+                try:
+                    with _github_client() as client:
+                        lang_resp = client.get(lang_url, headers=headers)
+                    if lang_resp.status_code == 200:
+                        for lang in lang_resp.json().keys():
+                            languages.add(lang)
+                except Exception:
+                    pass
+
+        return list(languages)
     except Exception as e:
         print(f"Erro integracao Github: {e}")
     return []
@@ -110,6 +134,16 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
     github_skills = []
     if new_user.github_username:
         github_skills = fetch_github_skills(new_user.github_username)
+
+    # Salva skills no SQL (garantia de persistência independente do Neo4j)
+    for skill_name in github_skills:
+        existing = db.query(models.UserSkill).filter(
+            models.UserSkill.user_id == new_user.id,
+            models.UserSkill.skill_name == skill_name.lower()
+        ).first()
+        if not existing:
+            db.add(models.UserSkill(user_id=new_user.id, skill_name=skill_name.lower(), source="github"))
+    db.commit()
     
     # 3. Salva no Banco de Grafos (Neo4j)
     # Criamos o usuário e, se vieram Skills do GitHub, linkamos com :HAS_SKILL
@@ -185,6 +219,21 @@ def get_user_profile(user_id: int, db: Session = Depends(database.get_db)):
         # Neo4j indisponível: retorna dados parciais (só SQL) em vez de 500
         pass
 
+    # Se Neo4j não retornou skills, busca no SQL (tabela user_skills)
+    if not skills:
+        sql_skills = db.query(models.UserSkill).filter(models.UserSkill.user_id == user_id).all()
+        skills = [s.skill_name for s in sql_skills]
+
+    # trust_score via SQL (contagem de apoios recebidos) se Neo4j falhou
+    if trust_score == 0:
+        validations_received = db.query(models.Validation).filter(
+            models.Validation.target_user_id == user_id
+        ).all()
+        trust_score = sum(v.weight for v in validations_received)
+        validations_given = db.query(models.Validation).filter(
+            models.Validation.validator_id == user_id
+        ).count()
+
     # ==========================================
     # FASE 8: MOTOR DE CONQUISTAS (BADGES)
     # ==========================================
@@ -210,6 +259,48 @@ def get_user_profile(user_id: int, db: Session = Depends(database.get_db)):
         "intentions": intentions,
         "badges": badges
     }
+
+@app.post("/api/users/{user_id}/sync-skills")
+def sync_github_skills(user_id: int, db: Session = Depends(database.get_db)):
+    """Re-sincroniza as skills do GitHub para um usuario existente"""
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+    if not db_user.github_username:
+        raise HTTPException(status_code=400, detail="Usuário não possui username do GitHub cadastrado.")
+
+    github_skills = fetch_github_skills(db_user.github_username)
+
+    if not github_skills:
+        return {"message": "Nenhuma skill encontrada no GitHub.", "skills": []}
+
+    # Salva novas skills no SQL (sem duplicar)
+    added = []
+    for skill_name in github_skills:
+        existing = db.query(models.UserSkill).filter(
+            models.UserSkill.user_id == user_id,
+            models.UserSkill.skill_name == skill_name.lower()
+        ).first()
+        if not existing:
+            db.add(models.UserSkill(user_id=user_id, skill_name=skill_name.lower(), source="github"))
+            added.append(skill_name)
+    db.commit()
+
+    # Tenta sincronizar com Neo4j também
+    try:
+        query = """
+        MATCH (u:User {id: $id})
+        FOREACH (skill_name IN $skills |
+            MERGE (s:Skill {name: toLower(skill_name)})
+            MERGE (u)-[:HAS_SKILL]->(s)
+        )
+        """
+        neo4j_db.query(query, parameters={"id": user_id, "skills": github_skills})
+    except Exception:
+        pass
+
+    all_skills = [s.skill_name for s in db.query(models.UserSkill).filter(models.UserSkill.user_id == user_id).all()]
+    return {"message": f"Skills sincronizadas com sucesso! {len(added)} novas encontradas.", "skills": all_skills}
 
 @app.put("/api/users/{user_id}/profile")
 def update_user_profile(user_id: int, request: schemas.UserUpdateRequest, db: Session = Depends(database.get_db)):
