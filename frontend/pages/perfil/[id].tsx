@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Navbar from '../../components/Navbar'
+import BottomNav from '../../components/BottomNav'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
 
@@ -103,6 +104,7 @@ export default function Perfil() {
     <>
       <Head><title>{profile.name} — Indicae</title></Head>
       <Navbar userId={userId} userName={userName} onLogout={handleLogout} />
+      <BottomNav userId={userId} onLogout={handleLogout} />
       <div className="page-wrapper">
         <div className="container" style={{ padding: '48px 24px' }}>
 
