@@ -192,9 +192,26 @@ export default function Perfil() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
             {/* Skills */}
             <div className="glass-card" style={{ padding: 28 }}>
-              <h2 style={{ fontSize: '16px', fontWeight: 700, marginBottom: 16, color: 'var(--neon-cyan)' }}>
-                🐙 Skills (via GitHub)
-              </h2>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--neon-cyan)', margin: 0 }}>
+                  🐙 Skills (via GitHub)
+                </h2>
+                {isOwnProfile && (
+                  <button
+                    className="btn btn-ghost"
+                    style={{ padding: '4px 10px', fontSize: '12px' }}
+                    onClick={async () => {
+                      const res = await fetch(`${API}/api/users/${id}/sync-skills`, { method: 'POST' })
+                      if (res.ok) {
+                        const data = await res.json()
+                        setProfile(p => p ? { ...p, skills: data.skills } : p)
+                      }
+                    }}
+                  >
+                    🔄 Sincronizar
+                  </button>
+                )}
+              </div>
               {profile.skills.length > 0 ? (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {profile.skills.map(s => (
@@ -202,7 +219,12 @@ export default function Perfil() {
                   ))}
                 </div>
               ) : (
-                <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Nenhuma skill mapeada ainda.</p>
+                <div>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: 12 }}>Nenhuma skill mapeada ainda.</p>
+                  {isOwnProfile && (
+                    <p style={{ color: 'var(--text-muted)', fontSize: '12px' }}>Clique em "Sincronizar" para buscar suas linguagens no GitHub.</p>
+                  )}
+                </div>
               )}
             </div>
 
