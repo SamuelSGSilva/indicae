@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
 import Navbar from '../components/Navbar'
+import BottomNav from '../components/BottomNav'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
 
@@ -51,6 +52,7 @@ export default function Login() {
     <>
       <Head><title>Login — Indicae</title></Head>
       <Navbar userId={userId} userName={userName} onLogout={handleLogout} />
+      <BottomNav />
       <div className="page-wrapper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
         <div style={{ width: '100%', maxWidth: 420, padding: '0 24px' }}>
           <div className="glass-card" style={{ padding: 40 }}>
