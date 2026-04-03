@@ -375,57 +375,62 @@ body::before {
 }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent-primary); }
 
-/* ====== HAMBURGER — oculto no desktop ====== */
-.navbar-hamburger {
+/* ====== BOTTOM NAV — mobile only ====== */
+.bottom-nav {
   display: none;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 5px;
-  width: 40px;
-  height: 40px;
-  background: none;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  padding: 0;
-  flex-shrink: 0;
-}
-
-/* ====== DRAWER + OVERLAY — ocultos no desktop ====== */
-.mob-drawer {
-  display: none;
-  position: fixed;
-  top: 64px;
-  right: 0;
-  width: 280px;
-  height: calc(100vh - 64px);
-  background: var(--bg-secondary);
-  border-left: 1px solid var(--border);
-  padding: 24px 20px;
-  z-index: 1000;
-  overflow-y: auto;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.mob-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  top: 64px;
-  background: rgba(0, 0, 0, 0.6);
-  z-index: 999;
-  backdrop-filter: blur(2px);
-  transition: opacity 0.3s ease;
 }
 
 /* ====== RESPONSIVE ====== */
 @media (max-width: 768px) {
   .navbar { padding: 0 16px; }
-  .container { padding: 0 16px; }
   .navbar-links { display: none; }
   .navbar-actions { display: none; }
-  .navbar-hamburger { display: flex; }
-  .mob-drawer { display: flex; flex-direction: column; }
-  .mob-overlay { display: block; }
+  .container { padding: 0 16px; }
+  .page-wrapper { padding-bottom: 72px; }
+
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: rgba(5, 8, 22, 0.95);
+    border-top: 1px solid var(--border);
+    backdrop-filter: blur(20px);
+    z-index: 200;
+    align-items: stretch;
+  }
+
+  .bottom-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    text-decoration: none;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    font-family: inherit;
+    transition: color 0.15s;
+  }
+
+  .bottom-nav-item--active {
+    color: var(--accent-primary);
+  }
+
+  .bottom-nav-icon {
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  .bottom-nav-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
 }
