@@ -18,6 +18,14 @@ class User(Base):
     
     intentions = relationship("Intention", back_populates="user")
     
+class UserSkill(Base):
+    __tablename__ = "user_skills"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    skill_name = Column(String(150), nullable=False)
+    source = Column(String(50), default="github")  # github, manual, validation
+
 class Validation(Base):
     __tablename__ = "validations"
 
