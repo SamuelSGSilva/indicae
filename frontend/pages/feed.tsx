@@ -3,6 +3,7 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import Navbar from '../components/Navbar'
+import BottomNav from '../components/BottomNav'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
 
@@ -63,6 +64,7 @@ export default function Feed() {
     <>
       <Head><title>Feed da Rede — Indicae</title></Head>
       <Navbar userId={userId} userName={userName} onLogout={handleLogout} />
+      <BottomNav userId={userId} onLogout={handleLogout} />
 
       {/* Modal de Upvote */}
       {selectedUser && (
