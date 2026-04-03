@@ -4,6 +4,7 @@ import { useRouter } from 'next/router'
 import Head from 'next/head'
 import dynamic from 'next/dynamic'
 import Navbar from '../components/Navbar'
+import BottomNav from '../components/BottomNav'
 
 // Force-graph is client-only (uses Three.js/WebGL)
 const ForceGraph3D = dynamic(() => import('react-force-graph-3d'), { ssr: false })
@@ -53,6 +54,7 @@ export default function Grafo() {
     <>
       <Head><title>Grafo 3D — Indicae</title></Head>
       <Navbar userId={userId} userName={userName} onLogout={handleLogout} />
+      <BottomNav userId={userId} onLogout={handleLogout} />
 
       <div style={{ position: 'fixed', top: 68, left: 0, right: 0, bottom: 0, background: 'var(--bg-primary)' }}>
         {/* Info overlay */}
