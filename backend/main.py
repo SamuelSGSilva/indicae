@@ -355,18 +355,46 @@ def b2b_market_trends():
     try:
         skills_res = neo4j_db.query(query_skills, parameters={})
         alphas_res = neo4j_db.query(query_alphas, parameters={})
-        
-        # Estruturando na veia para o Recharts consumir!
         top_skills = [{"name": r["name"].title(), "value": r["value"]} for r in skills_res] if skills_res else []
         top_alphas = [{"name": r["name"], "validations": r["validations"], "trust": r["trust"]} for r in alphas_res] if alphas_res else []
+        if top_skills or top_alphas:
+            return {"top_skills": top_skills, "top_alphas": top_alphas}
+        raise Exception("Neo4j vazio")
+    except Exception:
+        pass
 
-        return {
-            "top_skills": top_skills,
-            "top_alphas": top_alphas
-        }
-    except Exception as e:
-        print(f"Erro Analítico B2B: {e}")
-        return {"top_skills": [], "top_alphas": []}
+    # Fallback SQL
+    from sqlalchemy import func as sqlfunc
+    from sqlalchemy.orm import Session as _S
+    db: _S = next(database.get_db())
+    try:
+        # Top skills: contagem de apoios por skill
+        skill_counts = db.query(
+            models.Validation.skill_name,
+            sqlfunc.count(models.Validation.id).label("value")
+        ).group_by(models.Validation.skill_name).order_by(sqlfunc.count(models.Validation.id).desc()).limit(8).all()
+
+        # Se nao houver apoios, conta de user_skills (skills do GitHub)
+        if not skill_counts:
+            skill_counts = db.query(
+                models.UserSkill.skill_name,
+                sqlfunc.count(models.UserSkill.id).label("value")
+            ).group_by(models.UserSkill.skill_name).order_by(sqlfunc.count(models.UserSkill.id).desc()).limit(8).all()
+
+        top_skills = [{"name": r.skill_name.title(), "value": r.value} for r in skill_counts]
+
+        # Top alphas: soma de apoios recebidos por usuario
+        alpha_counts = db.query(
+            models.User.name,
+            sqlfunc.count(models.Validation.id).label("validations"),
+            sqlfunc.sum(models.Validation.weight).label("trust")
+        ).join(models.Validation, models.Validation.target_user_id == models.User.id)         .group_by(models.User.id, models.User.name)         .order_by(sqlfunc.sum(models.Validation.weight).desc()).limit(5).all()
+
+        top_alphas = [{"name": r.name, "validations": r.validations, "trust": int(r.trust or 0)} for r in alpha_counts]
+
+        return {"top_skills": top_skills, "top_alphas": top_alphas}
+    finally:
+        db.close()
 
 # ==========================================================
 # FEED SOCIAL: MOTOR DE INDICAÇÕES B2C (FASE 11)
@@ -378,13 +406,16 @@ def get_all_users(db: Session = Depends(database.get_db)):
     feed = []
     
     for u in users:
-        # Pega as Skills do Grafo pra facilitar o Frontend
+        # Pega as Skills do Grafo, ou do SQL como fallback
         query_skills = "MATCH (user:User {id: $uid})-[:HAS_SKILL]->(s:Skill) RETURN s.name AS skill"
         try:
             res = neo4j_db.query(query_skills, parameters={"uid": u.id})
             user_skills = [r["skill"] for r in res] if res else []
         except:
             user_skills = []
+        if not user_skills:
+            sql_skills = db.query(models.UserSkill).filter(models.UserSkill.user_id == u.id).all()
+            user_skills = [s.skill_name for s in sql_skills]
             
         feed.append({
             "id_referencia": u.id,
@@ -542,10 +573,51 @@ def b2b_talent_search(skill: str):
     """
     try:
         results = neo4j_db.query(query, parameters={"target_skill": skill})
-        return {"talents": [dict(r) for r in results]}
-    except Exception as e:
-        # Neo4j indisponível: retorna lista vazia em vez de 500
-        return {"talents": []}
+        talents = [dict(r) for r in results]
+        if talents:
+            return {"talents": talents}
+        raise Exception("Neo4j vazio")
+    except Exception:
+        pass
+
+    # Fallback SQL: busca por skill em user_skills e validacoes
+    from sqlalchemy import func as sqlfunc, or_
+    from sqlalchemy.orm import Session as _S
+    db: _S = next(database.get_db())
+    try:
+        skill_lower = skill.strip().lower()
+        # Usuarios com essa skill (via GitHub ou apoios recebidos)
+        user_ids_skills = db.query(models.UserSkill.user_id).filter(
+            models.UserSkill.skill_name.ilike(f"%{skill_lower}%")
+        ).subquery()
+        user_ids_validation = db.query(models.Validation.target_user_id).filter(
+            models.Validation.skill_name.ilike(f"%{skill_lower}%")
+        ).subquery()
+
+        from sqlalchemy import union
+        all_ids = db.query(models.UserSkill.user_id).filter(
+            models.UserSkill.skill_name.ilike(f"%{skill_lower}%")
+        ).union(
+            db.query(models.Validation.target_user_id).filter(
+                models.Validation.skill_name.ilike(f"%{skill_lower}%")
+            )
+        ).subquery()
+
+        users = db.query(models.User).filter(models.User.id.in_(all_ids)).all()
+
+        talents = []
+        for u in users:
+            trust = db.query(sqlfunc.sum(models.Validation.weight)).filter(
+                models.Validation.target_user_id == u.id
+            ).scalar() or 0
+            talents.append({
+                "id": u.id, "nome": u.name, "contato": u.email,
+                "bio": u.bio or "", "confianca": int(trust)
+            })
+        talents.sort(key=lambda x: x["confianca"], reverse=True)
+        return {"talents": talents[:20]}
+    finally:
+        db.close()
 
 @app.post("/api/b2b/cultural-fit")
 def analyze_cultural_fit(fit_req: schemas.CulturalFitRequest, db: Session = Depends(database.get_db)):
