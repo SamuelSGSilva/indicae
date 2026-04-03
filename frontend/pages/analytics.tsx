@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Navbar from '../components/Navbar'
+import BottomNav from '../components/BottomNav'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   RadarChart, Radar, PolarGrid, PolarAngleAxis,
@@ -58,6 +59,7 @@ export default function Analytics() {
     <>
       <Head><title>Analytics B2B — Indicae</title></Head>
       <Navbar userId={userId} userName={userName} onLogout={handleLogout} />
+      <BottomNav userId={userId} onLogout={handleLogout} />
       <div className="page-wrapper">
         <div className="container" style={{ padding: '48px 24px' }}>
           <div style={{ marginBottom: 40 }}>
