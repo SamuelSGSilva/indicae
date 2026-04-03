@@ -8,7 +8,7 @@ from gemini_ai import get_intention_embedding
 import requests
 import httpx
 import socket
-import os
+import o
 import base64
 from dotenv import load_dotenv
 
