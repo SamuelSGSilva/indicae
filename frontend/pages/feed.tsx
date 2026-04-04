@@ -27,17 +27,37 @@ export default function Feed() {
   const [upvoteSuccess, setUpvoteSuccess] = useState(false)
 
   useEffect(() => {
-    const storedId = localStorage.getItem('indicae_user_id')
-    const storedName = localStorage.getItem('indicae_user_name')
-    if (!storedId) { router.push('/login'); return }
-    setUserId(Number(storedId))
-    setUserName(storedName)
+    // 1. O LEÃO DE CHÁCARA AGORA É ESPERTO
+    // Pega os parâmetros da URL (ex: ?userId=123)
+    const params = new URLSearchParams(window.location.search)
+    const urlUserId = params.get('userId')
+
+    let currentId = localStorage.getItem('indicae_user_id')
+    let currentName = localStorage.getItem('indicae_user_name')
+
+    // Se o backend mandou o ID pela URL (Login do Google/GitHub)
+    if (urlUserId) {
+      localStorage.setItem('indicae_user_id', urlUserId)
+      currentId = urlUserId
+      // Opcional: Limpa a URL para sumir o ?userId=123 e ficar só /feed
+      router.replace('/feed', undefined, { shallow: true })
+    }
+
+    // Se não tem ID nem na URL e nem no LocalStorage, expulsa!
+    if (!currentId) { 
+      router.push('/login')
+      return 
+    }
+
+    // 2. TUDO CERTO, PODE ENTRAR
+    setUserId(Number(currentId))
+    setUserName(currentName)
 
     fetch(`${API}/api/network/users`)
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
       .then(data => { setUsers(data.matches || []); setLoading(false) })
       .catch(() => setLoading(false))
-  }, [])
+  }, [router])
 
   const handleLogout = () => { localStorage.clear(); setUserId(null); setUserName(null); router.push('/') }
 
