@@ -13,3 +13,4 @@ httpx
 gunicorn
 pgvector
 email-validator
+slowapi==0.1.9
