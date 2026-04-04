@@ -1,10 +1,14 @@
 import os
 import httpx
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from fastapi import Request
+
+# --- IMPORTS DO RATE LIMITING ---
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 # IMPORTANTE: Verifique se o nome do seu arquivo de banco é models ou database
 from models import User, get_db, Base, engine
@@ -14,12 +18,17 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+# --- CONFIGURAÇÃO DO RATE LIMITING ---
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # 2. CONFIGURAÇÃO DE CORS (Segurança: Restrito ao Frontend Oficial e Localhost)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://indicae-app.vercel.app", # Substitua pela URL exata do seu frontend no Vercel
-        "http://localhost:3000"                  # Mantido para você conseguir rodar o projeto na sua máquina
+        "http://localhost:3000"           # Mantido para você conseguir rodar o projeto na sua máquina
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -34,14 +43,15 @@ FRONTEND_URL = "https://seu-projeto.vercel.app"
 GOOGLE_REDIRECT_URI = f"{FRONTEND_URL}/api/auth/google/callback"
 
 @app.get("/api/auth/google/login")
-async def google_login():
+@limiter.limit("5/minute") # --- PROTEÇÃO CONTRA SPAM APLICADA AQUI ---
+async def google_login(request: Request): # O parâmetro request é obrigatório para o limiter ler o IP
     scope = "openid%20email%20profile"
     return RedirectResponse(
         f"https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id={GOOGLE_CLIENT_ID}&redirect_uri={GOOGLE_REDIRECT_URI}&scope={scope}"
     )
 
 @app.get("/api/auth/google/callback")
-async def google_callback(code: str, db: Session = Depends(get_db)):
+async def google_callback(request: Request, code: str, db: Session = Depends(get_db)):
     async with httpx.AsyncClient() as client:
         # 1. Troca o código pelo token
         token_res = await client.post(
@@ -83,9 +93,3 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
 @app.get("/")
 def read_root():
     return {"status": "online"}
-
-app = FastAPI()
-
-limiter = Limiter(key_func=get_remote_address)
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
