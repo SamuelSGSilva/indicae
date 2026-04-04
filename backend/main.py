@@ -4,6 +4,7 @@ from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from fastapi import Request
 
 # IMPORTANTE: Verifique se o nome do seu arquivo de banco é models ou database
 from models import User, get_db, Base, engine
@@ -82,3 +83,9 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
 @app.get("/")
 def read_root():
     return {"status": "online"}
+
+app = FastAPI()
+
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
