@@ -9,6 +9,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from sqlalchemy import text
 
 # --- IMPORTS DO RATE LIMITING ---
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -257,6 +258,14 @@ async def verify_email(token: str, db: Session = Depends(get_db)):
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=400, detail="Link de verificação inválido.")
 
+@app.get("/api/fix-db")
+def fix_db(db: Session = Depends(get_db)):
+    # Injeta as colunas novas diretamente no banco de dados
+    db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE;"))
+    db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS github_username VARCHAR(100);"))
+    db.commit()
+    return {"status": "Banco de dados atualizado com sucesso!"}
+    
 # ================================================================
 # ROTAS BÁSICAS
 # ================================================================
