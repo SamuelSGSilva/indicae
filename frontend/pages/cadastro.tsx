@@ -1,180 +1,168 @@
-import { useState } from 'react';
-import { useRouter } from 'next/router';
-import Link from 'next/link';
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
+import Head from 'next/head'
+import Link from 'next/link'
+import Navbar from '../components/Navbar'
+import BottomNav from '../components/BottomNav'
 
-export default function Cadastro() {
-  const [formData, setFormData] = useState({ 
-    name: '', 
-    email: '', 
-    password: '', 
-    confirmPassword: '', 
-    github: '', 
-    bio: '', 
-    skills: '', 
-    role: 'Dev' 
-  });
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
 
-  const isPasswordStrong = (pass: string) => {
-    return /^(?=.*[A-Z])(?=.*\d).{8,}$/.test(pass);
-  };
-
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (formData.name.trim().length < 3) return setError("Nome muito curto.");
-    if (!formData.email.includes('@')) return setError("E-mail inválido.");
-    if (!isPasswordStrong(formData.password)) return setError("Senha deve ter 8+ caracteres, uma maiúscula e um número.");
-    if (formData.password !== formData.confirmPassword) return setError("As senhas não coincidem.");
-
-    setLoading(true);
-    try {
-      const res = await fetch('https://indicae-backend.onrender.com/api/users/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      if (res.ok) router.push('/login?msg=sucesso');
-      else {
-        const data = await res.json();
-        setError(data.detail || "Erro ao cadastrar.");
-      }
-    } catch (err) {
-      setError("Falha na conexão com o servidor.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div style={containerStyle}>
-      <div style={cardStyle}>
-        <div style={logoStyle}>
-          <span style={{ color: '#A855F7', fontSize: '24px' }}>◆</span>
-          <h1 style={titleStyle}>INDICAE</h1>
-        </div>
-        
-        <p style={subtitleStyle}>Crie sua conta na Malha</p>
-
-        <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          
-          <div style={inputGroup}>
-            <label style={labelStyle}>Nome</label>
-            <input style={inputStyle} type="text" placeholder="seu nome" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
-          </div>
-
-          <div style={inputGroup}>
-            <label style={labelStyle}>E-mail</label>
-            <input style={inputStyle} type="email" placeholder="seu@email.com" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} required />
-          </div>
-
-          <div style={inputGroup}>
-            <label style={labelStyle}>GitHub User</label>
-            <input style={inputStyle} type="text" placeholder="@usuario" value={formData.github} onChange={e => setFormData({...formData, github: e.target.value})} />
-          </div>
-
-          <div style={inputGroup}>
-            <label style={labelStyle}>Senha</label>
-            <input style={inputStyle} type="password" placeholder="********" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required />
-          </div>
-
-          <div style={inputGroup}>
-            <label style={labelStyle}>Confirmar Senha</label>
-            <input style={inputStyle} type="password" placeholder="********" value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} required />
-          </div>
-
-          <div style={inputGroup}>
-            <label style={labelStyle}>Bio / Descrição</label>
-            <textarea style={{...inputStyle, minHeight: '60px', resize: 'none'}} placeholder="Conte um pouco sobre você..." value={formData.bio} onChange={e => setFormData({...formData, bio: e.target.value})} />
-          </div>
-
-          <div style={inputGroup}>
-            <label style={labelStyle}>Habilidades (separadas por vírgula)</label>
-            <input style={inputStyle} type="text" placeholder="React, Node, Python..." value={formData.skills} onChange={e => setFormData({...formData, skills: e.target.value})} />
-          </div>
-
-          <div style={inputGroup}>
-            <label style={labelStyle}>Perfil</label>
-            <select style={inputStyle} value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
-              <option value="Dev">Desenvolvedor</option>
-              <option value="B2C">Empresa/B2C</option>
-            </select>
-          </div>
-
-          {error && <p style={errorStyle}>{error}</p>}
-
-          <button disabled={loading} type="submit" style={btnPrimaryStyle}>
-            {loading ? 'Processando...' : 'Cadastrar'}
-          </button>
-        </form>
-
-        <div style={dividerContainer}>
-          <div style={line}></div>
-          <span style={dividerText}>ou</span>
-          <div style={line}></div>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <button type="button" onClick={() => window.location.href = 'https://indicae-backend.onrender.com/api/auth/google/login'} style={btnSecondaryStyle}>
-            <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" width="18" alt="G" />
-            Entrar com Google
-          </button>
-
-          <button type="button" onClick={() => window.location.href = 'https://indicae-backend.onrender.com/api/auth/github/login'} style={btnSecondaryStyle}>
-            <svg height="18" viewBox="0 0 16 16" width="18" fill="white">
-              <path fillRule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
-            </svg>
-            Entrar com GitHub
-          </button>
-        </div>
-
-        <p style={footerTextStyle}>
-          Já tem conta? <Link href="/login"><span style={linkStyle}>Entrar</span></Link>
-        </p>
-      </div>
-    </div>
-  );
+const errorMessages: Record<string, string> = {
+  github_token_failed: 'Falha ao autenticar com GitHub. Tente novamente.',
+  github_crash: 'Erro interno no login com GitHub. Tente novamente.',
+  google_token_failed: 'Falha ao autenticar com Google. Tente novamente.',
+  google_crash: 'Erro interno no login com Google. Tente novamente.',
+  google_not_configured: 'Login com Google não configurado ainda.',
+  google_no_email: 'Não foi possível obter seu e-mail do Google.',
 }
 
-// ESTILOS ATUALIZADOS
-const containerStyle = { 
-  backgroundColor: '#0F1117', 
-  minHeight: '100vh', 
-  display: 'flex', 
-  alignItems: 'center', 
-  justifyContent: 'center', 
-  fontFamily: 'sans-serif', 
-  padding: '20px 10px' 
-};
+export default function Login() {
+  const router = useRouter()
+  const [userId, setUserId] = useState<number | null>(null)
+  const [userName, setUserName] = useState<string | null>(null)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-const cardStyle = { 
-  backgroundColor: '#161B22', 
-  padding: '30px 40px', 
-  borderRadius: '24px', 
-  border: '1px solid #30363D', 
-  width: '100%', 
-  maxWidth: '420px', 
-  textAlign: 'center' as const, 
-  boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-  maxHeight: '90vh', // Garante que não fuja da tela no mobile
-  overflowY: 'auto' as const // Adiciona rolagem se a tela for pequena
-};
+  useEffect(() => {
+    const storedId = localStorage.getItem('indicae_user_id')
+    const storedName = localStorage.getItem('indicae_user_name')
+    if (storedId) { setUserId(Number(storedId)); setUserName(storedName) }
+    const { error: oauthError } = router.query
+    if (oauthError) setError(errorMessages[oauthError as string] || 'Erro no login social. Tente novamente.')
+  }, [router.query])
 
-const logoStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '10px' };
-const titleStyle = { color: '#6366F1', fontSize: '26px', fontWeight: 'bold', letterSpacing: '2px', margin: 0 };
-const subtitleStyle = { color: '#8B949E', fontSize: '14px', marginBottom: '20px' };
-const inputGroup = { textAlign: 'left' as const, display: 'flex', flexDirection: 'column' as const, gap: '4px' };
-const labelStyle = { color: '#C9D1D9', fontSize: '12px', marginLeft: '4px' };
-const inputStyle = { backgroundColor: '#0D1117', border: '1px solid #30363D', borderRadius: '12px', padding: '10px 14px', color: '#C9D1D9', fontSize: '13px', outline: 'none' };
-const btnPrimaryStyle = { backgroundColor: '#6366F1', backgroundImage: 'linear-gradient(45deg, #6366F1, #8B5CF6)', color: 'white', border: 'none', borderRadius: '12px', padding: '12px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px', boxShadow: '0 4px 15px rgba(99, 102, 241, 0.4)' };
-const dividerContainer = { display: 'flex', alignItems: 'center', margin: '20px 0', gap: '10px' };
-const line = { flex: 1, height: '1px', backgroundColor: '#30363D' };
-const dividerText = { color: '#484F58', fontSize: '11px', textTransform: 'uppercase' as const };
-const btnSecondaryStyle = { backgroundColor: '#161B22', color: 'white', border: '1px solid #30363D', borderRadius: '12px', padding: '10px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', width: '100%' };
-const errorStyle = { color: '#F85149', fontSize: '12px', margin: '0' };
-const footerTextStyle = { color: '#8B949E', fontSize: '13px', marginTop: '20px' };
-const linkStyle = { color: '#A855F7', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'none' };
+  const handleLogout = () => { localStorage.clear(); setUserId(null); setUserName(null) }
+
+  const validate = () => {
+    if (!email.trim()) return 'Informe seu e-mail.'
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'E-mail inválido.'
+    if (!password) return 'Informe sua senha.'
+    return ''
+  }
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const err = validate()
+    if (err) { setError(err); return }
+    setLoading(true)
+    setError('')
+    try {
+      const res = await fetch(`${API}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.detail || 'E-mail ou senha incorretos.')
+      localStorage.setItem('indicae_user_id', String(data.user_id))
+      localStorage.setItem('indicae_user_name', data.name)
+      router.push('/')
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const divider = (
+    <div style={{ position: 'relative', margin: '20px 0', textAlign: 'center' }}>
+      <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: 1, background: 'var(--border)' }} />
+      <span style={{ position: 'relative', background: 'var(--bg-card)', padding: '0 12px', color: 'var(--text-muted)', fontSize: '12px' }}>ou</span>
+    </div>
+  )
+
+  return (
+    <>
+      <Head><title>Login — Indicae</title></Head>
+      <Navbar userId={userId} userName={userName} onLogout={handleLogout} />
+      <BottomNav />
+      <div className="page-wrapper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <div style={{ width: '100%', maxWidth: 420, padding: '0 24px' }}>
+          <div className="glass-card" style={{ padding: 40 }}>
+            <div style={{ textAlign: 'center', marginBottom: 32 }}>
+              <Link href="/" style={{ textDecoration: 'none', fontSize: 28, fontWeight: 800, background: 'var(--gradient-hero)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                ◈ INDICAE
+              </Link>
+              <p style={{ color: 'var(--text-secondary)', marginTop: 8, fontSize: '14px' }}>Bem-vindo de volta à Malha</p>
+            </div>
+
+            {/* OAuth buttons */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                onClick={() => window.location.href = `${API}/api/auth/github/login`}
+                className="btn btn-secondary"
+                style={{ width: '100%', justifyContent: 'center', padding: '12px', gap: 10 }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                Entrar com GitHub
+              </button>
+
+              <button
+                onClick={() => window.location.href = `${API}/api/auth/google/login`}
+                className="btn btn-ghost"
+                style={{ width: '100%', justifyContent: 'center', padding: '12px', gap: 10, border: '1px solid var(--border)' }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                Entrar com Google
+              </button>
+            </div>
+
+            {divider}
+
+            {error && (
+              <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 'var(--radius-md)', padding: '12px 16px', marginBottom: 16, color: '#f87171', fontSize: '13px' }}>
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>E-mail</label>
+                <input
+                  className="input"
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChange={e => { setEmail(e.target.value); setError('') }}
+                  autoComplete="email"
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Senha</label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    className="input"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={e => { setPassword(e.target.value); setError('') }}
+                    autoComplete="current-password"
+                    style={{ paddingRight: 44 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(s => !s)}
+                    style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 16 }}
+                  >
+                    {showPassword ? '🙈' : '👁️'}
+                  </button>
+                </div>
+              </div>
+              <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%', justifyContent: 'center', marginTop: 4, padding: '14px' }}>
+                {loading ? 'Entrando...' : 'Entrar'}
+              </button>
+            </form>
+
+            <p style={{ textAlign: 'center', marginTop: 20, fontSize: '13px', color: 'var(--text-muted)' }}>
+              Não tem conta?{' '}
+              <Link href="/cadastro" style={{ color: 'var(--neon-purple)', textDecoration: 'none', fontWeight: 600 }}>Cadastrar</Link>
+            </p>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
