@@ -16,7 +16,8 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 # IMPORTANTE: Verifique se o nome do seu arquivo de banco é models ou database
-from models import User, get_db, Base, engine
+from models import User
+from database import get_db, Base, engine
 
 # Inicia o banco
 Base.metadata.create_all(bind=engine)
