@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 import models, schemas, database
@@ -10,7 +10,23 @@ import httpx
 import socket
 import os
 import base64
+import time
+from collections import defaultdict
 from dotenv import load_dotenv
+
+# ── Rate limiter simples em memória ──
+_rate_store: dict = defaultdict(list)
+_RATE_LIMIT = 20        # max requisições
+_RATE_WINDOW = 60       # por janela de 60s
+
+def check_rate_limit(request: Request, limit: int = _RATE_LIMIT):
+    ip = request.client.host if request.client else "unknown"
+    now = time.time()
+    timestamps = [t for t in _rate_store[ip] if now - t < _RATE_WINDOW]
+    timestamps.append(now)
+    _rate_store[ip] = timestamps
+    if len(timestamps) > limit:
+        raise HTTPException(status_code=429, detail="Muitas requisições. Aguarde um momento.")
 
 # ─── Fix Total: Monkey Patch global no resolver de DNS via Socket (bypass VPN) ────
 # O Windows + VPN as vezes não resolve o dns pelo Python.
@@ -34,8 +50,8 @@ def _github_client() -> httpx.Client:
     """Retorna um httpx.Client padrão mas que agora herdará o socket patcheado do sistema"""
     transport = httpx.HTTPTransport(retries=2)
     return httpx.Client(
-        trust_env=False,   # Ignora System Proxies se a VPN injetar algo esquisito
-        verify=False,      # Opcional, ignora verificação ssl temporariamente (se houver proxy TLS)
+        trust_env=False,
+        verify=True,   # SSL verificado em producao
         timeout=15.0,
         transport=transport,
     )
@@ -120,21 +136,30 @@ def fetch_github_skills(username: str):
     return []
 
 @app.post("/api/users", response_model=schemas.UserResponse)
-def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
+def create_user(req: Request, user: schemas.UserCreate, db: Session = Depends(database.get_db)):
+    check_rate_limit(req, limit=5)  # cadastro: max 5/min por IP
     # 1. Verifica se já existe
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Email já cadastrado.")
     
     # 2. Salva no Banco Relacional (PostgreSQL) - Fake password hash para MVP
-    fake_hashed_password = user.password + "notreallyhashed"
+    import bcrypt
+    hashed_password = bcrypt.hashpw(user.password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    # Sanitiza inputs
+    safe_name = user.name.strip()[:150]
+    safe_bio = (user.bio or "").strip()[:1000]
+    safe_github = (user.github_username or "").strip().lstrip("@")[:100]
+    # Valida role
+    if user.role not in ("b2c", "mentor", "b2b"):
+        raise HTTPException(status_code=400, detail="Perfil inválido.")
     new_user = models.User(
-        name=user.name, 
-        email=user.email, 
-        hashed_password=fake_hashed_password, 
-        role=user.role, 
-        github_username=user.github_username,
-        bio=user.bio
+        name=safe_name,
+        email=user.email.strip().lower(),
+        hashed_password=hashed_password,
+        role=user.role,
+        github_username=safe_github or None,
+        bio=safe_bio
     )
     db.add(new_user)
     db.commit()
@@ -183,9 +208,19 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
     return new_user
 
 @app.post("/api/login")
-def login(request: schemas.LoginRequest, db: Session = Depends(database.get_db)):
-    db_user = db.query(models.User).filter(models.User.email == request.email).first()
-    if not db_user or db_user.hashed_password != (request.password + "notreallyhashed"):
+def login(req: Request, request: schemas.LoginRequest, db: Session = Depends(database.get_db)):
+    check_rate_limit(req, limit=10)  # login: max 10/min por IP
+    import bcrypt, time
+    db_user = db.query(models.User).filter(models.User.email == request.email.strip().lower()).first()
+    # Timing-safe: sempre roda o bcrypt para evitar timing attack
+    dummy_hash = "$2b$12$AAAAAAAAAAAAAAAAAAAAAA.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    check_hash = db_user.hashed_password if db_user else dummy_hash
+    # Senhas OAuth (uuid) nao sao verificaveis — bloqueia tentativa
+    try:
+        password_ok = bcrypt.checkpw(request.password.encode("utf-8"), check_hash.encode("utf-8"))
+    except Exception:
+        password_ok = False
+    if not db_user or not password_ok:
         raise HTTPException(status_code=401, detail="Credenciais inválidas")
     return {"message": "Sucesso", "user_id": db_user.id, "name": db_user.name}
 
@@ -314,15 +349,17 @@ def sync_github_skills(user_id: int, db: Session = Depends(database.get_db)):
 
 @app.put("/api/users/{user_id}/profile")
 def update_user_profile(user_id: int, request: schemas.UserUpdateRequest, db: Session = Depends(database.get_db)):
-    # 1. Atualizar no Banco Relacional (PostgreSQL blindado)
+    # Sanitiza inputs antes de salvar
+    if request.name is not None and len(request.name.strip()) < 2:
+        raise HTTPException(status_code=400, detail="Nome muito curto.")
     db_user = db.query(models.User).filter(models.User.id == user_id).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")
     
     if request.name is not None:
-        db_user.name = request.name
+        db_user.name = request.name.strip()[:150]
     if request.bio is not None:
-        db_user.bio = request.bio
+        db_user.bio = request.bio.strip()[:1000]
         
     db.commit()
     db.refresh(db_user)
@@ -664,11 +701,15 @@ def google_callback(code: str, db: Session = Depends(database.get_db)):
 @app.post("/api/network/validate")
 def validate_skill(validation: schemas.ValidationCreate, db: Session = Depends(database.get_db)):
     # 1. Sempre salva no SQL (persistência garantida)
+    skill_clean = validation.skill_name.strip().lower()[:100]
+    if not skill_clean:
+        raise HTTPException(status_code=400, detail="Nome da skill inválido.")
+    weight_safe = max(1, min(int(validation.weight or 1), 10))  # entre 1 e 10
     db_validation = models.Validation(
         validator_id=validation.validator_id,
         target_user_id=validation.target_user_id,
-        skill_name=validation.skill_name.lower().strip(),
-        weight=validation.weight or 1,
+        skill_name=skill_clean,
+        weight=weight_safe,
     )
     db.add(db_validation)
     db.commit()
