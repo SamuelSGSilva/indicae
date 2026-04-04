@@ -13,10 +13,13 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-# Middleware para não dar erro de travamento entre Vercel e Render
+# 2. CONFIGURAÇÃO DE CORS (Segurança: Restrito ao Frontend Oficial e Localhost)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://indicae-app.vercel.app", # Substitua pela URL exata do seu frontend no Vercel
+        "http://localhost:3000"                  # Mantido para você conseguir rodar o projeto na sua máquina
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
