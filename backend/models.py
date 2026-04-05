@@ -16,6 +16,7 @@ class User(Base):
     role = Column(String(50), default="b2c") # b2c (especialista) ou b2b (empresa)
     github_username = Column(String(100), nullable=True) # ADICIONADO PARA O PROCESSO DE PULL DE SKILLS
     bio = Column(String, nullable=True) # Novo campo para Fase 6: Match Cultural # ADICIONADO PARA O PROCESSO DE PULL DE SKILLS
+    avatar_url = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     intentions = relationship("Intention", back_populates="user")
