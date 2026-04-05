@@ -262,6 +262,7 @@ def get_user_profile(user_id: int, db: Session = Depends(database.get_db)):
         "role": db_user.role,
         "github_username": db_user.github_username,
         "bio": db_user.bio,
+        "avatar_url": db_user.avatar_url or "",
         "trust_score": trust_score or 0,
         "skills": skills,
         "intentions": intentions,
@@ -462,10 +463,14 @@ def github_callback(code: str, state: str = "", db: Session = Depends(database.g
             db.query(models.User).filter(models.User.github_username == gh_username).first()
             or db.query(models.User).filter(models.User.email == gh_email).first()
         )
+        gh_avatar = gh_user.get("avatar_url", "")
         if db_user:
             db_user.github_username = gh_username
             if not db_user.name or db_user.name == db_user.email.split("@")[0]:
                 db_user.name = gh_name
+            # Salva avatar do GitHub se o usuário ainda não tem foto personalizada
+            if gh_avatar and not db_user.avatar_url:
+                db_user.avatar_url = gh_avatar
             db.commit()
         else:
             db_user = models.User(
@@ -475,6 +480,7 @@ def github_callback(code: str, state: str = "", db: Session = Depends(database.g
                 role="b2c",
                 github_username=gh_username,
                 bio=bio,
+                avatar_url=gh_avatar or None,
             )
             db.add(db_user)
             db.commit()
@@ -562,6 +568,7 @@ def google_callback(code: str, db: Session = Depends(database.get_db)):
         g_user = user_res.json()
         g_email = g_user.get("email")
         g_name = g_user.get("name") or (g_email.split("@")[0] if g_email else "Usuario")
+        g_avatar = g_user.get("picture", "")
         if not g_email:
             return RedirectResponse(f"{FRONTEND_URL}/login?error=google_no_email")
         import uuid
@@ -569,7 +576,10 @@ def google_callback(code: str, db: Session = Depends(database.get_db)):
         if db_user:
             if not db_user.name:
                 db_user.name = g_name
-                db.commit()
+            # Salva avatar do Google se o usuário ainda não tem foto personalizada
+            if g_avatar and not db_user.avatar_url:
+                db_user.avatar_url = g_avatar
+            db.commit()
         else:
             db_user = models.User(
                 name=g_name,
@@ -578,6 +588,7 @@ def google_callback(code: str, db: Session = Depends(database.get_db)):
                 role="b2c",
                 github_username=None,
                 bio="",
+                avatar_url=g_avatar or None,
             )
             db.add(db_user)
             db.commit()
@@ -676,6 +687,23 @@ def reset_password(payload: dict, db: Session = Depends(database.get_db)):
     reset.used = True
     db.commit()
     return {"message": "Senha redefinida com sucesso!"}
+
+
+@app.put("/api/users/{user_id}/avatar")
+def update_avatar(user_id: int, payload: dict, db: Session = Depends(database.get_db)):
+    """Atualiza foto de perfil. Aceita URL externa ou base64 (upload direto)."""
+    avatar = payload.get("avatar_url", "").strip()
+    if not avatar:
+        raise HTTPException(status_code=400, detail="URL ou imagem obrigatória.")
+    # Limite de 2MB para base64
+    if avatar.startswith("data:image") and len(avatar) > 2 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Imagem muito grande. Máximo 2MB.")
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+    db_user.avatar_url = avatar
+    db.commit()
+    return {"message": "Foto atualizada com sucesso!", "avatar_url": avatar}
 
 
 @app.get("/api/search")
