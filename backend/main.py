@@ -698,6 +698,54 @@ def google_callback(code: str, db: Session = Depends(database.get_db)):
         print(f"Erro no Google OAuth: {str(e)}")
         return RedirectResponse(f"{FRONTEND_URL}/login?error=google_crash")
 
+# ==========================================================
+# NOTIFICAÇÕES
+# ==========================================================
+@app.get("/api/notifications/{user_id}")
+def get_notifications(user_id: int, db: Session = Depends(database.get_db)):
+    """Retorna todas as notificações do usuário, mais recentes primeiro."""
+    notifs = (
+        db.query(models.Notification)
+        .filter(models.Notification.user_id == user_id)
+        .order_by(models.Notification.created_at.desc())
+        .limit(30)
+        .all()
+    )
+    unread_count = sum(1 for n in notifs if n.read == 0)
+    return {
+        "notifications": [
+            {
+                "id": n.id,
+                "type": n.type,
+                "message": n.message,
+                "read": n.read,
+                "created_at": n.created_at.isoformat() if n.created_at else None,
+            }
+            for n in notifs
+        ],
+        "unread_count": unread_count,
+    }
+
+@app.put("/api/notifications/{notification_id}/read")
+def mark_notification_read(notification_id: int, db: Session = Depends(database.get_db)):
+    """Marca uma notificação como lida."""
+    notif = db.query(models.Notification).filter(models.Notification.id == notification_id).first()
+    if not notif:
+        raise HTTPException(status_code=404, detail="Notificação não encontrada.")
+    notif.read = 1
+    db.commit()
+    return {"ok": True}
+
+@app.put("/api/notifications/read-all/{user_id}")
+def mark_all_read(user_id: int, db: Session = Depends(database.get_db)):
+    """Marca todas as notificações do usuário como lidas."""
+    db.query(models.Notification).filter(
+        models.Notification.user_id == user_id,
+        models.Notification.read == 0
+    ).update({"read": 1})
+    db.commit()
+    return {"ok": True}
+
 @app.post("/api/network/validate")
 def validate_skill(validation: schemas.ValidationCreate, db: Session = Depends(database.get_db)):
     # 1. Sempre salva no SQL (persistência garantida)
@@ -714,7 +762,23 @@ def validate_skill(validation: schemas.ValidationCreate, db: Session = Depends(d
     db.add(db_validation)
     db.commit()
 
-    # 2. Tenta sincronizar com Neo4j (opcional)
+    # 2. Cria notificacao para o usuario que recebeu o apoio
+    try:
+        actor = db.query(models.User).filter(models.User.id == validation.validator_id).first()
+        actor_name = actor.name if actor else "Alguém"
+        notif = models.Notification(
+            user_id=validation.target_user_id,
+            actor_id=validation.validator_id,
+            type="skill_support",
+            message=f"{actor_name} apoiou sua habilidade em {skill_clean.title()}! 👍",
+            read=0,
+        )
+        db.add(notif)
+        db.commit()
+    except Exception as e:
+        print(f"Erro ao criar notificacao: {e}")
+
+    # 3. Tenta sincronizar com Neo4j (opcional)
     query = """
     MATCH (v:User {id: $validator_id})
     MATCH (t:User {id: $target_id})
