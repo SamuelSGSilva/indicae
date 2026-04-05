@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from pgvector.sqlalchemy import Vector
 from sqlalchemy.sql import func
@@ -14,7 +14,6 @@ class User(Base):
     role = Column(String(50), default="b2c") # b2c (especialista) ou b2b (empresa)
     github_username = Column(String(100), nullable=True) # ADICIONADO PARA O PROCESSO DE PULL DE SKILLS
     bio = Column(String, nullable=True) # Novo campo para Fase 6: Match Cultural # ADICIONADO PARA O PROCESSO DE PULL DE SKILLS
-    is_verified = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     intentions = relationship("Intention", back_populates="user")
@@ -35,6 +34,17 @@ class Validation(Base):
     target_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     skill_name = Column(String(150), nullable=False)
     weight = Column(Integer, default=1)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)   # quem recebe
+    actor_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # quem gerou
+    type = Column(String(50), nullable=False)   # "skill_support", "match", etc.
+    message = Column(String(300), nullable=False)
+    read = Column(Integer, default=0)           # 0=nao lida, 1=lida
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class Intention(Base):
