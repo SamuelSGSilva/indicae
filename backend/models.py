@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from pgvector.sqlalchemy import Vector
 from sqlalchemy.sql import func
 from database import Base
+import datetime
 
 class User(Base):
     __tablename__ = "users"
@@ -57,3 +58,13 @@ class Intention(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="intentions")
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+ 
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    token = Column(String, unique=True, nullable=False, index=True)
+    expires_at = Column(DateTime, nullable=False)
+    used = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
