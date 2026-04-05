@@ -726,16 +726,7 @@ def get_notifications(user_id: int, db: Session = Depends(database.get_db)):
         "unread_count": unread_count,
     }
 
-@app.put("/api/notifications/{notification_id}/read")
-def mark_notification_read(notification_id: int, db: Session = Depends(database.get_db)):
-    """Marca uma notificação como lida."""
-    notif = db.query(models.Notification).filter(models.Notification.id == notification_id).first()
-    if not notif:
-        raise HTTPException(status_code=404, detail="Notificação não encontrada.")
-    notif.read = 1
-    db.commit()
-    return {"ok": True}
-
+# IMPORTANTE: read-all ANTES de {notification_id}/read para evitar conflito de rota no FastAPI
 @app.put("/api/notifications/read-all/{user_id}")
 def mark_all_read(user_id: int, db: Session = Depends(database.get_db)):
     """Marca todas as notificações do usuário como lidas."""
@@ -743,6 +734,16 @@ def mark_all_read(user_id: int, db: Session = Depends(database.get_db)):
         models.Notification.user_id == user_id,
         models.Notification.read == 0
     ).update({"read": 1})
+    db.commit()
+    return {"ok": True}
+
+@app.put("/api/notifications/{notification_id}/read")
+def mark_notification_read(notification_id: int, db: Session = Depends(database.get_db)):
+    """Marca uma notificação como lida."""
+    notif = db.query(models.Notification).filter(models.Notification.id == notification_id).first()
+    if not notif:
+        raise HTTPException(status_code=404, detail="Notificação não encontrada.")
+    notif.read = 1
     db.commit()
     return {"ok": True}
 
