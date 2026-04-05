@@ -699,6 +699,59 @@ def google_callback(code: str, db: Session = Depends(database.get_db)):
         return RedirectResponse(f"{FRONTEND_URL}/login?error=google_crash")
 
 # ==========================================================
+# BUSCA DE USUÁRIOS (por nome ou skill)
+# ==========================================================
+@app.get("/api/search")
+def search_users(q: str = "", db: Session = Depends(database.get_db)):
+    """Busca usuários por nome ou skill. Retorna até 20 resultados."""
+    from sqlalchemy import func as sqlfunc
+    q = q.strip()[:100]
+    if len(q) < 2:
+        return {"results": []}
+
+    # Busca por nome
+    by_name = db.query(models.User).filter(
+        models.User.name.ilike(f"%{q}%")
+    ).limit(20).all()
+
+    # Busca por skill (evita duplicatas de quem já veio por nome)
+    name_ids = {u.id for u in by_name}
+    skill_user_ids = db.query(models.UserSkill.user_id).filter(
+        models.UserSkill.skill_name.ilike(f"%{q.lower()}%")
+    ).union(
+        db.query(models.Validation.target_user_id).filter(
+            models.Validation.skill_name.ilike(f"%{q.lower()}%")
+        )
+    ).all()
+    skill_ids = {row[0] for row in skill_user_ids} - name_ids
+
+    by_skill = db.query(models.User).filter(
+        models.User.id.in_(skill_ids)
+    ).limit(20).all() if skill_ids else []
+
+    all_users = (by_name + by_skill)[:20]
+
+    results = []
+    for u in all_users:
+        skills = [s.skill_name for s in db.query(models.UserSkill).filter(
+            models.UserSkill.user_id == u.id
+        ).limit(8).all()]
+        trust = db.query(sqlfunc.sum(models.Validation.weight)).filter(
+            models.Validation.target_user_id == u.id
+        ).scalar() or 0
+        results.append({
+            "id": u.id,
+            "name": u.name,
+            "bio": u.bio or "",
+            "role": u.role,
+            "github_username": u.github_username or "",
+            "skills": skills,
+            "trust_score": int(trust),
+        })
+
+    return {"results": results}
+
+# ==========================================================
 # NOTIFICAÇÕES
 # ==========================================================
 @app.get("/api/notifications/{user_id}")
