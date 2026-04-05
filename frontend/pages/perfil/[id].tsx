@@ -120,6 +120,7 @@ export default function Perfil() {
                 userId={userId!}
                 currentAvatar={avatarUrl}
                 userName={profile.name}
+                githubUsername={profile.github_username || undefined}
                 onUpdated={(url) => setAvatarUrl(url)}
               />
             ) : (
