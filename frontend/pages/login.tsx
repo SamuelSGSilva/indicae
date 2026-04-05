@@ -4,6 +4,7 @@ import Head from 'next/head'
 import Link from 'next/link'
 import Navbar from '../components/Navbar'
 import BottomNav from '../components/BottomNav'
+import Link from "next/link"
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
 
@@ -142,6 +143,14 @@ export default function Login() {
                     autoComplete="current-password"
                     style={{ paddingRight: 44 }}
                   />
+                  <div style={{ textAlign: "right", marginTop: "-4px" }}>
+                  <Link
+                      href="/esqueci-senha"
+                      style={{ color: "#a78bfa", fontSize: "13px", textDecoration: "none" }}
+                    >
+                    Esqueceu sua senha?
+                    </Link>
+                    </div>
                   <button
                     type="button"
                     onClick={() => setShowPassword(s => !s)}
