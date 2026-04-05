@@ -66,6 +66,11 @@ export default function BottomNav({ userId, onLogout }: BottomNavProps) {
               <span style={{ fontSize: 10, fontWeight: 500 }}>Feed</span>
             </Link>
 
+            <Link href="/busca" style={itemStyle(isActive('/busca'))}>
+              <span style={{ fontSize: 20 }}>🔍</span>
+              <span style={{ fontSize: 10, fontWeight: 500 }}>Buscar</span>
+            </Link>
+
             <Link href={`/perfil/${userId}`} style={itemStyle(isActive('/perfil'))}>
               <span style={{ fontSize: 20 }}>👤</span>
               <span style={{ fontSize: 10, fontWeight: 500 }}>Perfil</span>
