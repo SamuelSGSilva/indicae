@@ -16,3 +16,5 @@ email-validator
 slowapi==0.1.9
 PyJWT==2.8.0
 bcrypt
+slowapi 
+resend   
