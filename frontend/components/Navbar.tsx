@@ -24,6 +24,7 @@ export default function Navbar({ userId, userName, onLogout }: NavbarProps) {
         {userId && (
           <>
             <li><Link href="/feed" className={router.pathname === '/feed' ? 'active' : ''}>Feed</Link></li>
+            <li><Link href="/busca" className={router.pathname === '/busca' ? 'active' : ''}>Buscar</Link></li>
             <li><Link href={`/perfil/${userId}`} className={router.pathname.startsWith('/perfil') ? 'active' : ''}>Meu Perfil</Link></li>
             <li><Link href="/grafo" className={router.pathname === '/grafo' ? 'active' : ''}>Grafo 3D</Link></li>
             <li><Link href="/analytics" className={router.pathname === '/analytics' ? 'active' : ''}>Analytics</Link></li>
