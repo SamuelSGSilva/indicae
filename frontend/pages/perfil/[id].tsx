@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Navbar from '../../components/Navbar'
 import BottomNav from '../../components/BottomNav'
-import AvatarUpload from '../components/AvatarUpload'
+import AvatarUpload from '../../components/AvatarUpload'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
 
@@ -12,6 +12,7 @@ interface Profile {
   id: number; name: string; email: string; role: string
   github_username: string; bio: string; trust_score: number
   skills: string[]; intentions: string[]; badges: Badge[]
+  avatar_url: string
 }
 
 export default function Perfil() {
@@ -26,7 +27,7 @@ export default function Perfil() {
   const [intention, setIntention] = useState('')
   const [intentSent, setIntentSent] = useState(false)
   const [matches, setMatches] = useState<any[]>([])
-  const [avatarUrl, setAvatarUrl] = useState<string>("")
+  const [avatarUrl, setAvatarUrl] = useState<string>('')
 
   useEffect(() => {
     const storedId = localStorage.getItem('indicae_user_id')
@@ -42,15 +43,16 @@ export default function Perfil() {
         return r.json()
       })
       .then(data => {
-        // Guard: ensure expected fields exist before setting profile
         if (data && data.name) {
           setProfile({
             ...data,
             skills: data.skills || [],
             badges: data.badges || [],
             intentions: data.intentions || [],
+            avatar_url: data.avatar_url || '',
           })
           setBioText(data.bio || '')
+          setAvatarUrl(data.avatar_url || '')  // ← preenche o avatar
         }
         setLoading(false)
       })
@@ -79,7 +81,6 @@ export default function Perfil() {
     })
     setIntentSent(true)
     setIntention('')
-    // Busca matches
     const res = await fetch(`${API}/api/match/${id}`)
     const data = await res.json()
     setMatches(data.matches || [])
@@ -112,15 +113,41 @@ export default function Perfil() {
 
           {/* Header Card */}
           <div className="glass-card" style={{ padding: 40, marginBottom: 24, display: 'flex', gap: 32, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            <div style={{
-              width: 80, height: 80, borderRadius: '50%',
-              background: 'var(--gradient-hero)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 32, flexShrink: 0,
-              animation: 'pulse-glow 3s ease-in-out infinite',
-            }}>
-              {(profile.name ?? '?').charAt(0).toUpperCase()}
-            </div>
+
+            {/* Avatar — editável no próprio perfil, somente leitura nos outros */}
+            {isOwnProfile ? (
+              <AvatarUpload
+                userId={userId!}
+                currentAvatar={avatarUrl}
+                userName={profile.name}
+                onUpdated={(url) => setAvatarUrl(url)}
+              />
+            ) : (
+              <div style={{
+                width: 96, height: 96, borderRadius: '50%',
+                overflow: 'hidden', flexShrink: 0,
+                border: '3px solid rgba(124,58,237,0.5)',
+                animation: 'pulse-glow 3s ease-in-out infinite',
+              }}>
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={profile.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                  />
+                ) : (
+                  <div style={{
+                    width: '100%', height: '100%',
+                    background: 'var(--gradient-hero)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 36, fontWeight: 700, color: '#fff',
+                  }}>
+                    {(profile.name ?? '?').charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div style={{ flex: 1, minWidth: 200 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
@@ -129,7 +156,6 @@ export default function Perfil() {
                   {roleLabels[profile.role] || profile.role}
                 </span>
               </div>
-
               {profile.github_username && (
                 <a
                   href={`https://github.com/${profile.github_username}`}
@@ -140,7 +166,6 @@ export default function Perfil() {
                   @{profile.github_username}
                 </a>
               )}
-
               {editBio ? (
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <textarea
@@ -296,6 +321,7 @@ export default function Perfil() {
               </div>
             )}
           </div>
+
         </div>
       </div>
     </>
