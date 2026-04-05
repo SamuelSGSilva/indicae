@@ -26,6 +26,7 @@ export default function Perfil() {
   const [intention, setIntention] = useState('')
   const [intentSent, setIntentSent] = useState(false)
   const [matches, setMatches] = useState<any[]>([])
+  const [avatarUrl, setAvatarUrl] = useState<string>("")
 
   useEffect(() => {
     const storedId = localStorage.getItem('indicae_user_id')
