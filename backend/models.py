@@ -4,6 +4,7 @@ from pgvector.sqlalchemy import Vector
 from sqlalchemy.sql import func
 from database import Base
 import datetime
+from sqlalchemy import Column, Integer, String, ForeignKey, Float, Text, Boolean, DateTime
 
 class User(Base):
     __tablename__ = "users"
