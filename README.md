@@ -11,7 +11,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com)
 [![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat-square&logo=next.js)](https://nextjs.org)
 [![Neo4j](https://img.shields.io/badge/Neo4j-grafos-008CC1?style=flat-square&logo=neo4j)](https://neo4j.com)
-[![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
+[![License](https://img.shields.io/badge/license-Proprietary-red?style=flat-square)](LICENSE)
 
 [🌐 Acessar plataforma](https://indicae-app.vercel.app) · [🐛 Reportar bug](https://github.com/SamuelSGSilva/indicae/issues) · [✨ Sugerir feature](https://github.com/SamuelSGSilva/indicae/issues)
 
@@ -239,7 +239,9 @@ git push origin feature/minha-feature
 
 ## Licença
 
-MIT © [Samuel dos Santos](https://github.com/SamuelSGSilva)
+Copyright (c) 2026 [Samuel dos Santos](https://github.com/SamuelSGSilva). All Rights Reserved.
+
+Uso, cópia, modificação ou distribuição deste software sem autorização expressa e por escrito do autor é estritamente proibido. Veja [LICENSE](LICENSE) para detalhes.
 
 ---
 
