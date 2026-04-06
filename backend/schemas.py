@@ -32,6 +32,11 @@ class IntentResponse(BaseModel):
 class SkillResponse(BaseModel):
     name: str
 
+class TrustDimensions(BaseModel):
+    github: int = 0
+    social: int = 0
+    activity: int = 0
+
 class UserProfileResponse(BaseModel):
     id: int
     name: str
@@ -40,6 +45,7 @@ class UserProfileResponse(BaseModel):
     role: str
     bio: Optional[str] = None
     trust_score: int
+    trust_dimensions: TrustDimensions
     skills: list[str]
     intentions: list[str]
     badges: list[dict]

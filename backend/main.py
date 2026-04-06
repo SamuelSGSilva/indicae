@@ -94,6 +94,31 @@ def read_root():
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
 
+def fetch_github_stats(username: str) -> dict:
+    """Returns public_repos count and total stars for a GitHub user."""
+    try:
+        headers = {"Accept": "application/vnd.github+json"}
+        if GITHUB_TOKEN:
+            headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
+        with _github_client() as client:
+            user_resp = client.get(f"https://api.github.com/users/{username}", headers=headers)
+        if user_resp.status_code != 200:
+            return {"repos": 0, "stars": 0}
+        user_data = user_resp.json()
+        public_repos = user_data.get("public_repos", 0)
+        with _github_client() as client:
+            repos_resp = client.get(
+                f"https://api.github.com/users/{username}/repos?per_page=100&sort=updated",
+                headers=headers
+            )
+        stars = 0
+        if repos_resp.status_code == 200:
+            stars = sum(r.get("stargazers_count", 0) for r in repos_resp.json())
+        return {"repos": public_repos, "stars": stars}
+    except Exception:
+        return {"repos": 0, "stars": 0}
+
+
 def fetch_github_skills(username: str):
     try:
         headers = {"Accept": "application/vnd.github+json"}
@@ -246,15 +271,45 @@ def get_user_profile(user_id: int, db: Session = Depends(database.get_db)):
         validations_given = db.query(models.Validation).filter(
             models.Validation.validator_id == user_id
         ).count()
+    # --- Trust Dimensions ---
+    # Social score: sum of validation weights received (capped at 50)
+    social_score = min(int(trust_score or 0), 50)
+
+    # GitHub score: repos + stars (capped at 50)
+    github_score = 0
+    if db_user.github_username:
+        gh_stats = fetch_github_stats(db_user.github_username)
+        github_score = min(gh_stats["repos"] * 2 + gh_stats["stars"], 50)
+
+    # Activity score: days on platform + intentions set + validations given (capped at 50)
+    import datetime as dt
+    days_on_platform = 0
+    if db_user.created_at:
+        now = dt.datetime.now(dt.timezone.utc)
+        created = db_user.created_at
+        if created.tzinfo is None:
+            created = created.replace(tzinfo=dt.timezone.utc)
+        days_on_platform = (now - created).days
+    activity_score = min(
+        min(days_on_platform // 7, 20) +          # up to 20 pts: 1pt per week
+        min(len(intentions) * 5, 15) +            # up to 15 pts: 5pt per intention
+        min(int(validations_given) * 3, 15),      # up to 15 pts: 3pt per validation given
+        50
+    )
+
+    total_trust = social_score + github_score + activity_score
+
     badges = []
-    if trust_score > 0:
+    if social_score > 0:
         badges.append({"icon": "🛡️", "name": "Membro Verificado", "desc": "Recebeu confiança da rede"})
-    if trust_score >= 20:
-        badges.append({"icon": "⭐", "name": "Talento de Ouro", "desc": "Autoridade máxima (" + str(trust_score) + " pts)"})
+    if total_trust >= 50:
+        badges.append({"icon": "⭐", "name": "Talento de Ouro", "desc": f"Autoridade máxima ({total_trust} pts)"})
     if len(skills) >= 5:
         badges.append({"icon": "🐙", "name": "Poliglota Tech", "desc": f"Domina {len(skills)} tecnologias"})
     if validations_given > 0:
         badges.append({"icon": "🤝", "name": "Pilar da Comunidade", "desc": "Fortaleceu a rede apoiando colegas"})
+    if github_score >= 20:
+        badges.append({"icon": "🐱", "name": "GitHub Power User", "desc": "Alto impacto no GitHub"})
     return {
         "id": db_user.id,
         "name": db_user.name,
@@ -263,7 +318,12 @@ def get_user_profile(user_id: int, db: Session = Depends(database.get_db)):
         "github_username": db_user.github_username,
         "bio": db_user.bio,
         "avatar_url": db_user.avatar_url or "",
-        "trust_score": trust_score or 0,
+        "trust_score": total_trust,
+        "trust_dimensions": {
+            "github": github_score,
+            "social": social_score,
+            "activity": activity_score,
+        },
         "skills": skills,
         "intentions": intentions,
         "badges": badges

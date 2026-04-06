@@ -8,9 +8,11 @@ import AvatarUpload from '../../components/AvatarUpload'
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
 
 interface Badge { icon: string; name: string; desc: string }
+interface TrustDimensions { github: number; social: number; activity: number }
 interface Profile {
   id: number; name: string; email: string; role: string
   github_username: string; bio: string; trust_score: number
+  trust_dimensions: TrustDimensions
   skills: string[]; intentions: string[]; badges: Badge[]
   avatar_url: string
 }
@@ -50,6 +52,7 @@ export default function Perfil() {
             badges: data.badges || [],
             intentions: data.intentions || [],
             avatar_url: data.avatar_url || '',
+            trust_dimensions: data.trust_dimensions || { github: 0, social: 0, activity: 0 },
           })
           setBioText(data.bio || '')
           setAvatarUrl(data.avatar_url || '')
@@ -194,26 +197,32 @@ export default function Perfil() {
               )}
             </div>
 
-            {/* Trust Score */}
-            <div style={{ textAlign: 'center', flexShrink: 0 }}>
-              <div style={{
-                width: 80, height: 80, borderRadius: '50%',
-                background: 'conic-gradient(var(--accent-primary) 0deg, var(--neon-cyan) 180deg, transparent 180deg)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                position: 'relative',
-              }}>
-                <div style={{
-                  width: 64, height: 64, borderRadius: '50%',
-                  background: 'var(--bg-secondary)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexDirection: 'column',
-                }}>
-                  <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--neon-purple)' }}>
-                    {profile.trust_score || 0}
-                  </span>
-                </div>
+            {/* Trust Score — 3 dimensões */}
+            <div style={{ flexShrink: 0, minWidth: 160 }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                Trust Score — {profile.trust_score || 0} pts
               </div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: 6 }}>Trust Score</div>
+              {[
+                { label: 'GitHub', value: profile.trust_dimensions?.github ?? 0, color: 'var(--neon-cyan)', icon: '🐱' },
+                { label: 'Social', value: profile.trust_dimensions?.social ?? 0, color: 'var(--neon-purple)', icon: '🤝' },
+                { label: 'Atividade', value: profile.trust_dimensions?.activity ?? 0, color: 'var(--neon-green)', icon: '⚡' },
+              ].map(({ label, value, color, icon }) => (
+                <div key={label} style={{ marginBottom: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: 4 }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>{icon} {label}</span>
+                    <span style={{ color, fontWeight: 700 }}>{value}/50</span>
+                  </div>
+                  <div style={{ height: 6, borderRadius: 4, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%',
+                      width: `${Math.min((value / 50) * 100, 100)}%`,
+                      background: color,
+                      borderRadius: 4,
+                      transition: 'width 0.6s ease',
+                    }} />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
