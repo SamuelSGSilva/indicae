@@ -52,14 +52,14 @@ export default function Perfil() {
             avatar_url: data.avatar_url || '',
           })
           setBioText(data.bio || '')
-          setAvatarUrl(data.avatar_url || '')  // ← preenche o avatar
+          setAvatarUrl(data.avatar_url || '')
         }
         setLoading(false)
       })
       .catch(() => setLoading(false))
   }, [id])
 
-  const handleLogout = () => { localStorage.clear(); setUserId(null); setUserName(null) }
+  const handleLogout = () => { localStorage.clear(); setUserId(null); setUserName(null); router.push('/') }
 
   const saveBio = async () => {
     if (!id) return

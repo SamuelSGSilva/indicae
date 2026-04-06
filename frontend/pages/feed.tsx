@@ -162,7 +162,7 @@ export default function Feed() {
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 20, fontWeight: 700, flexShrink: 0,
                     }}>
-                      {user.nome.charAt(0).toUpperCase()}
+                      {user.nome ? user.nome.charAt(0).toUpperCase() : '?'}
                     </div>
                     <div>
                       <Link href={`/perfil/${user.id_referencia}`} style={{ textDecoration: 'none', color: 'var(--text-primary)', fontWeight: 700, fontSize: '16px' }}>

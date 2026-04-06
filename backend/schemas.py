@@ -43,6 +43,7 @@ class UserProfileResponse(BaseModel):
     skills: list[str]
     intentions: list[str]
     badges: list[dict]
+    avatar_url: Optional[str] = None
 
 class UserUpdateRequest(BaseModel):
     name: Optional[str] = None
