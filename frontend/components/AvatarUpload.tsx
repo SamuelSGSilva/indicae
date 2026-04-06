@@ -43,7 +43,8 @@ export default function AvatarUpload({
         }
       })
       .catch(() => {});
-  }, [githubUsername]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [githubUsername, avatar]);
 
   // Atualiza avatar local quando prop muda
   useEffect(() => {

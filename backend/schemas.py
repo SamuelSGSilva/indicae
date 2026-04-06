@@ -44,6 +44,7 @@ class UserProfileResponse(BaseModel):
     github_username: Optional[str] = None
     role: str
     bio: Optional[str] = None
+    avatar_url: Optional[str] = None
     trust_score: int
     trust_dimensions: TrustDimensions
     skills: list[str]
