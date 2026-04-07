@@ -114,7 +114,7 @@ export default function Home() {
                       Entrar com GitHub
                     </button>
                     <Link href="/cadastro" className="btn btn-secondary" style={{ fontSize: '15px', padding: '14px 28px' }}>
-                      Criar conta manual
+                      Entrar com e-mail e senha
                     </Link>
                   </>
                 ) : (
