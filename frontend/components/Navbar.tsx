@@ -36,9 +36,12 @@ export default function Navbar({ userId, userName, onLogout }: NavbarProps) {
         {userId ? (
           <>
             <NotificationBell userId={userId} />
-            <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+            <Link
+              href={`/perfil/${userId}`}
+              style={{ color: 'var(--text-secondary)', fontSize: '14px', textDecoration: 'none' }}
+            >
               Olá, <strong style={{ color: 'var(--text-primary)' }}>{userName}</strong>
-            </span>
+            </Link>
             <button className="btn btn-ghost" onClick={onLogout} style={{ padding: '8px 16px' }}>
               Sair
             </button>

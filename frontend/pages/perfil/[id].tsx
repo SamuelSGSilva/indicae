@@ -30,6 +30,9 @@ export default function Perfil() {
   const [intentSent, setIntentSent] = useState(false)
   const [matches, setMatches] = useState<any[]>([])
   const [avatarUrl, setAvatarUrl] = useState<string>('')
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     const storedId = localStorage.getItem('indicae_user_id')
@@ -90,6 +93,25 @@ export default function Perfil() {
   }
 
   const isOwnProfile = userId === Number(id)
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'EXCLUIR') return
+    setDeleting(true)
+    try {
+      const res = await fetch(`${API}/api/users/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        localStorage.clear()
+        router.push('/?conta=excluida')
+      } else {
+        const data = await res.json()
+        alert(data.detail || 'Erro ao excluir conta.')
+        setDeleting(false)
+      }
+    } catch {
+      alert('Erro de conexão. Tente novamente.')
+      setDeleting(false)
+    }
+  }
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
@@ -331,6 +353,68 @@ export default function Perfil() {
               </div>
             )}
           </div>
+
+          {/* Zona de perigo — exclusão de conta (somente no próprio perfil) */}
+          {isOwnProfile && (
+            <div className="glass-card" style={{ padding: 28, marginTop: 24, border: '1px solid rgba(239,68,68,0.3)' }}>
+              <h2 style={{ fontSize: '16px', fontWeight: 700, marginBottom: 8, color: '#ef4444' }}>
+                Zona de Perigo
+              </h2>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: 16 }}>
+                Excluir sua conta remove permanentemente todos os seus dados (perfil, skills, validações, intenções e notificações), conforme a LGPD. Esta ação não pode ser desfeita.
+              </p>
+
+              {!showDeleteConfirm ? (
+                <button
+                  className="btn"
+                  style={{ background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.4)', padding: '8px 20px', fontSize: '13px' }}
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  Excluir minha conta
+                </button>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 420 }}>
+                  <p style={{ fontSize: '13px', color: '#ef4444', fontWeight: 600, margin: 0 }}>
+                    Para confirmar, digite <strong>EXCLUIR</strong> no campo abaixo:
+                  </p>
+                  <input
+                    className="input"
+                    placeholder="Digite EXCLUIR"
+                    value={deleteConfirmText}
+                    onChange={e => setDeleteConfirmText(e.target.value)}
+                    style={{ borderColor: 'rgba(239,68,68,0.5)' }}
+                    autoFocus
+                  />
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button
+                      className="btn"
+                      style={{
+                        background: deleteConfirmText === 'EXCLUIR' ? '#ef4444' : 'rgba(239,68,68,0.2)',
+                        color: '#fff',
+                        border: 'none',
+                        padding: '8px 20px',
+                        fontSize: '13px',
+                        cursor: deleteConfirmText === 'EXCLUIR' && !deleting ? 'pointer' : 'not-allowed',
+                        opacity: deleteConfirmText === 'EXCLUIR' && !deleting ? 1 : 0.5,
+                      }}
+                      disabled={deleteConfirmText !== 'EXCLUIR' || deleting}
+                      onClick={handleDeleteAccount}
+                    >
+                      {deleting ? 'Excluindo...' : 'Confirmar exclusão'}
+                    </button>
+                    <button
+                      className="btn btn-ghost"
+                      style={{ padding: '8px 16px', fontSize: '13px' }}
+                      onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText('') }}
+                      disabled={deleting}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
         </div>
       </div>

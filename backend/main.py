@@ -1094,3 +1094,53 @@ def find_match(user_id: int, db: Session = Depends(database.get_db)):
             "Fit": "Alta Afinidade Neural (IA)"
         })
     return {"matches": matches}
+
+
+@app.delete("/api/users/{user_id}")
+def delete_user(user_id: int, db: Session = Depends(database.get_db)):
+    """
+    Exclui o cadastro do usuário e todos os seus dados associados (conformidade LGPD).
+    Remove: intenções, skills, validações emitidas/recebidas, notificações e o próprio usuário.
+    """
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+
+    # Remove intenções (têm embedding — devem ser deletadas antes do usuário)
+    db.query(models.Intention).filter(models.Intention.user_id == user_id).delete()
+
+    # Remove skills
+    db.query(models.UserSkill).filter(models.UserSkill.user_id == user_id).delete()
+
+    # Remove validações emitidas e recebidas
+    db.query(models.Validation).filter(
+        (models.Validation.validator_id == user_id) |
+        (models.Validation.target_user_id == user_id)
+    ).delete()
+
+    # Remove notificações recebidas e geradas pelo usuário
+    db.query(models.Notification).filter(
+        (models.Notification.user_id == user_id) |
+        (models.Notification.actor_id == user_id)
+    ).delete()
+
+    # Remove tokens de redefinição de senha
+    db.query(models.PasswordResetToken).filter(
+        models.PasswordResetToken.user_id == user_id
+    ).delete()
+
+    # Remove o nó do Neo4j (se existir)
+    try:
+        if neo4j_db:
+            neo4j_db.query(
+                "MATCH (u:User {id: $id}) DETACH DELETE u",
+                parameters={"id": user_id}
+            )
+    except Exception:
+        pass  # Neo4j indisponível não deve impedir a exclusão no PostgreSQL
+
+    # Remove o próprio usuário
+    db.delete(db_user)
+    db.commit()
+
+    return {"message": "Conta excluída com sucesso. Todos os seus dados foram removidos."}
