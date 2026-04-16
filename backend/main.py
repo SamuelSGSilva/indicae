@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
+from typing import List
 import models, schemas, database
 from neo4j_provider import neo4j_db
 from fastapi.middleware.cors import CORSMiddleware
@@ -208,6 +209,16 @@ def create_user(req: Request, user: schemas.UserCreate, db: Session = Depends(da
         })
     except Exception as e:
         print(f"Erro ao salvar no Neo4J: {str(e)}")
+    try:
+        db.add(models.Activity(
+            actor_id=new_user.id,
+            target_user_id=None,
+            event_type="user_joined",
+            skill_name=None,
+        ))
+        db.commit()
+    except Exception as e:
+        print(f"Erro ao criar activity user_joined: {e}")
     return new_user
 
 
@@ -878,6 +889,12 @@ def validate_skill(validation: schemas.ValidationCreate, db: Session = Depends(d
             read=0,
         )
         db.add(notif)
+        db.add(models.Activity(
+            actor_id=validation.validator_id,
+            target_user_id=validation.target_user_id,
+            event_type="skill_validation",
+            skill_name=skill_clean,
+        ))
         db.commit()
     except Exception as e:
         print(f"Erro ao criar notificacao: {e}")
@@ -1054,6 +1071,16 @@ def log_intention(intention: schemas.IntentionCreate, db: Session = Depends(data
     )
     db.add(new_intention)
     db.commit()
+    try:
+        db.add(models.Activity(
+            actor_id=intention.user_id,
+            target_user_id=None,
+            event_type="intention_created",
+            skill_name=None,
+        ))
+        db.commit()
+    except Exception as e:
+        print(f"Erro ao criar activity intention_created: {e}")
     query = """
     MATCH (u:User {id: $user_id})
     MERGE (i:Intention {text: toLower($intent_text)})
@@ -1068,6 +1095,42 @@ def log_intention(intention: schemas.IntentionCreate, db: Session = Depends(data
         return {"message": "Sua intenção foi lida pela I.A e gravada nas duas inteligências do Indicae!"}
     except Exception as e:
         return {"message": "Sua intenção foi registrada com sucesso!"}
+
+
+@app.get("/api/activities/feed", response_model=List[schemas.ActivityResponse])
+def get_activity_feed(limit: int = 30, offset: int = 0, db: Session = Depends(database.get_db)):
+    activities = (
+        db.query(models.Activity)
+        .options(
+            joinedload(models.Activity.actor),
+            joinedload(models.Activity.target_user),
+        )
+        .order_by(models.Activity.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    result = []
+    for a in activities:
+        if not a.actor:
+            continue
+        result.append(schemas.ActivityResponse(
+            id=a.id,
+            event_type=a.event_type,
+            skill_name=a.skill_name,
+            created_at=a.created_at,
+            actor=schemas.ActivityActor(
+                id=a.actor.id,
+                name=a.actor.name,
+                avatar_url=a.actor.avatar_url,
+            ),
+            target_user=schemas.ActivityActor(
+                id=a.target_user.id,
+                name=a.target_user.name,
+                avatar_url=a.target_user.avatar_url,
+            ) if a.target_user else None,
+        ))
+    return result
 
 
 @app.get("/api/match/{user_id}")

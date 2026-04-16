@@ -76,6 +76,11 @@ export default function BottomNav({ userId, onLogout }: BottomNavProps) {
               <span style={{ fontSize: 10, fontWeight: 500 }}>Perfil</span>
             </Link>
 
+            <Link href="/atividade" style={itemStyle(isActive('/atividade'))}>
+              <span style={{ fontSize: 20 }}>⚡</span>
+              <span style={{ fontSize: 10, fontWeight: 500 }}>Atividade</span>
+            </Link>
+
             <Link href="/grafo" style={itemStyle(isActive('/grafo'))}>
               <span style={{ fontSize: 20 }}>◈</span>
               <span style={{ fontSize: 10, fontWeight: 500 }}>Grafo</span>

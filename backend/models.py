@@ -61,6 +61,20 @@ class Intention(Base):
 
     user = relationship("User", back_populates="intentions")
 
+class Activity(Base):
+    __tablename__ = "activities"
+
+    id = Column(Integer, primary_key=True, index=True)
+    actor_id = Column(Integer, ForeignKey("users.id"))
+    target_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    event_type = Column(String(50))  # "skill_validation", "user_joined", "intention_created"
+    skill_name = Column(String(100), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    actor = relationship("User", foreign_keys=[actor_id])
+    target_user = relationship("User", foreign_keys=[target_user_id])
+
+
 class PasswordResetToken(Base):
     __tablename__ = "password_reset_tokens"
  

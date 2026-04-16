@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
+from datetime import datetime
 
 class UserCreate(BaseModel):
     name: str
@@ -65,3 +66,24 @@ class ValidationCreate(BaseModel):
     target_user_id: int
     skill_name: str
     weight: Optional[int] = 5
+
+
+class ActivityActor(BaseModel):
+    id: int
+    name: str
+    avatar_url: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ActivityResponse(BaseModel):
+    id: int
+    event_type: str
+    skill_name: Optional[str] = None
+    created_at: Optional[datetime] = None
+    actor: ActivityActor
+    target_user: Optional[ActivityActor] = None
+
+    class Config:
+        from_attributes = True
