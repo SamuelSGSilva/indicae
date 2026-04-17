@@ -475,10 +475,7 @@ def sync_github_projects(user_id: int, db: Session = Depends(database.get_db)):
             db.add(project)
             added.append(project)
     db.commit()
-    all_projects = db.query(models.UserProject).filter(
-        models.UserProject.user_id == user_id
-    ).order_by(models.UserProject.created_at.desc()).all()
-    return {"message": f"{len(added)} projeto(s) importado(s).", "projects": all_projects}
+    return {"message": f"{len(added)} projeto(s) importado(s).", "count": len(added)}
 
 
 @app.put("/api/users/{user_id}/profile")

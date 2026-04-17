@@ -47,6 +47,8 @@ export default function Perfil() {
   const [showProjectModal, setShowProjectModal] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [projectForm, setProjectForm] = useState({ title: '', description: '', url: '', tech_stack: '' })
+  const [syncingProjects, setSyncingProjects] = useState(false)
+  const [syncMessage, setSyncMessage] = useState('')
 
   useEffect(() => {
     const storedId = localStorage.getItem('indicae_user_id')
@@ -131,12 +133,21 @@ export default function Perfil() {
   }
 
   async function syncGithubProjects() {
-    const res = await fetch(`${API}/api/users/${id}/sync-projects`, { method: 'POST' })
-    const data = await res.json()
-    // reload full project list
-    const profileRes = await fetch(`${API}/api/users/${id}/profile`)
-    const profileData = await profileRes.json()
-    setProjects(profileData.projects || [])
+    setSyncingProjects(true)
+    setSyncMessage('')
+    try {
+      const res = await fetch(`${API}/api/users/${id}/sync-projects`, { method: 'POST' })
+      const data = await res.json()
+      const profileRes = await fetch(`${API}/api/users/${id}/profile`)
+      const profileData = await profileRes.json()
+      setProjects(profileData.projects || [])
+      setSyncMessage(data.message || 'Sincronizado!')
+    } catch {
+      setSyncMessage('Erro ao sincronizar.')
+    } finally {
+      setSyncingProjects(false)
+      setTimeout(() => setSyncMessage(''), 4000)
+    }
   }
 
   const isOwnProfile = userId === Number(id)
@@ -408,15 +419,19 @@ export default function Perfil() {
                 🚀 Projetos
               </h2>
               {isOwnProfile && (
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  {syncMessage && (
+                    <span style={{ fontSize: '12px', color: 'var(--neon-green)', opacity: 0.85 }}>{syncMessage}</span>
+                  )}
                   {profile.github_username && (
                     <button
                       className="btn btn-ghost"
-                      style={{ padding: '4px 12px', fontSize: '12px', color: 'var(--text-muted)', borderColor: 'rgba(255,255,255,0.1)' }}
+                      style={{ padding: '4px 12px', fontSize: '12px', color: 'var(--text-muted)', borderColor: 'rgba(255,255,255,0.1)', opacity: syncingProjects ? 0.5 : 1 }}
                       onClick={syncGithubProjects}
+                      disabled={syncingProjects}
                       title="Importar repositórios do GitHub"
                     >
-                      🐱 Sincronizar GitHub
+                      {syncingProjects ? '⏳ Sincronizando...' : '🐱 Sincronizar GitHub'}
                     </button>
                   )}
                   <button
