@@ -93,6 +93,55 @@ def migrate():
             conn.rollback()
             print(f"notifications já existe ou erro: {e}")
 
+        # tabela activities
+        try:
+            conn.execute(sqlalchemy.text("""
+                CREATE TABLE IF NOT EXISTS activities (
+                    id SERIAL PRIMARY KEY,
+                    actor_id INTEGER REFERENCES users(id),
+                    target_user_id INTEGER REFERENCES users(id),
+                    event_type VARCHAR(50) NOT NULL,
+                    skill_name VARCHAR(100),
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                );
+            """))
+            conn.commit()
+            print("Tabela activities criada.")
+        except Exception as e:
+            conn.rollback()
+            print(f"activities já existe ou erro: {e}")
+
+        # tabela user_projects
+        try:
+            conn.execute(sqlalchemy.text("""
+                CREATE TABLE IF NOT EXISTS user_projects (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id),
+                    title VARCHAR(100) NOT NULL,
+                    description VARCHAR(500),
+                    url VARCHAR(300),
+                    tech_stack VARCHAR(200),
+                    source VARCHAR(20) DEFAULT 'manual',
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                );
+            """))
+            conn.commit()
+            print("Tabela user_projects criada.")
+        except Exception as e:
+            conn.rollback()
+            print(f"user_projects já existe ou erro: {e}")
+
+        # coluna source em user_projects (caso tabela já existia sem ela)
+        try:
+            conn.execute(sqlalchemy.text(
+                "ALTER TABLE user_projects ADD COLUMN source VARCHAR(20) DEFAULT 'manual';"
+            ))
+            conn.commit()
+            print("Coluna source adicionada em user_projects.")
+        except Exception as e:
+            conn.rollback()
+            print(f"source já existe ou erro: {e}")
+
     print("Migração concluída.")
 
 if __name__ == "__main__":
