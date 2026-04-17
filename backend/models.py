@@ -20,6 +20,7 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     intentions = relationship("Intention", back_populates="user")
+    projects = relationship("UserProject", back_populates="user")
     
 class UserSkill(Base):
     __tablename__ = "user_skills"
@@ -73,6 +74,18 @@ class Activity(Base):
 
     actor = relationship("User", foreign_keys=[actor_id])
     target_user = relationship("User", foreign_keys=[target_user_id])
+
+
+class UserProject(Base):
+    __tablename__ = "user_projects"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    title = Column(String(100), nullable=False)
+    description = Column(String(500), nullable=True)
+    url = Column(String(300), nullable=True)
+    tech_stack = Column(String(200), nullable=True)  # comma-separated tags
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    user = relationship("User", back_populates="projects")
 
 
 class PasswordResetToken(Base):

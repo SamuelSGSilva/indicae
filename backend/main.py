@@ -17,7 +17,7 @@ import datetime
 from collections import defaultdict
 from dotenv import load_dotenv
 import resend
-from models import PasswordResetToken
+from models import PasswordResetToken, UserProject
 
 # ── Rate limiter simples em memória ──
 _rate_store: dict = defaultdict(list)
@@ -321,6 +321,7 @@ def get_user_profile(user_id: int, db: Session = Depends(database.get_db)):
         badges.append({"icon": "🤝", "name": "Pilar da Comunidade", "desc": "Fortaleceu a rede apoiando colegas"})
     if github_score >= 20:
         badges.append({"icon": "🐱", "name": "GitHub Power User", "desc": "Alto impacto no GitHub"})
+    projects = db.query(UserProject).filter(UserProject.user_id == user_id).order_by(UserProject.created_at.desc()).all()
     return {
         "id": db_user.id,
         "name": db_user.name,
@@ -337,8 +338,45 @@ def get_user_profile(user_id: int, db: Session = Depends(database.get_db)):
         },
         "skills": skills,
         "intentions": intentions,
-        "badges": badges
+        "badges": badges,
+        "projects": projects,
     }
+
+
+@app.get("/api/users/{user_id}/projects", response_model=List[schemas.ProjectResponse])
+def get_projects(user_id: int, db: Session = Depends(database.get_db)):
+    return db.query(UserProject).filter(UserProject.user_id == user_id).order_by(UserProject.created_at.desc()).all()
+
+
+@app.post("/api/users/{user_id}/projects", response_model=schemas.ProjectResponse)
+def create_project(user_id: int, data: schemas.ProjectCreate, db: Session = Depends(database.get_db)):
+    project = UserProject(user_id=user_id, **data.dict())
+    db.add(project)
+    db.commit()
+    db.refresh(project)
+    return project
+
+
+@app.put("/api/users/{user_id}/projects/{project_id}", response_model=schemas.ProjectResponse)
+def update_project(user_id: int, project_id: int, data: schemas.ProjectCreate, db: Session = Depends(database.get_db)):
+    project = db.query(UserProject).filter(UserProject.id == project_id, UserProject.user_id == user_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    for k, v in data.dict(exclude_unset=True).items():
+        setattr(project, k, v)
+    db.commit()
+    db.refresh(project)
+    return project
+
+
+@app.delete("/api/users/{user_id}/projects/{project_id}")
+def delete_project(user_id: int, project_id: int, db: Session = Depends(database.get_db)):
+    project = db.query(UserProject).filter(UserProject.id == project_id, UserProject.user_id == user_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    db.delete(project)
+    db.commit()
+    return {"ok": True}
 
 
 @app.post("/api/users/{user_id}/sync-skills")

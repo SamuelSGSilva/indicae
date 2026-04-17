@@ -9,12 +9,21 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
 
 interface Badge { icon: string; name: string; desc: string }
 interface TrustDimensions { github: number; social: number; activity: number }
+interface Project {
+  id: number
+  title: string
+  description: string | null
+  url: string | null
+  tech_stack: string | null
+  created_at: string
+}
 interface Profile {
   id: number; name: string; email: string; role: string
   github_username: string; bio: string; trust_score: number
   trust_dimensions: TrustDimensions
   skills: string[]; intentions: string[]; badges: Badge[]
   avatar_url: string
+  projects: Project[]
 }
 
 export default function Perfil() {
@@ -33,6 +42,10 @@ export default function Perfil() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [deleting, setDeleting] = useState(false)
+  const [projects, setProjects] = useState<Project[]>([])
+  const [showProjectModal, setShowProjectModal] = useState(false)
+  const [editingProject, setEditingProject] = useState<Project | null>(null)
+  const [projectForm, setProjectForm] = useState({ title: '', description: '', url: '', tech_stack: '' })
 
   useEffect(() => {
     const storedId = localStorage.getItem('indicae_user_id')
@@ -56,7 +69,9 @@ export default function Perfil() {
             intentions: data.intentions || [],
             avatar_url: data.avatar_url || '',
             trust_dimensions: data.trust_dimensions || { github: 0, social: 0, activity: 0 },
+            projects: data.projects || [],
           })
+          setProjects(data.projects || [])
           setBioText(data.bio || '')
           setAvatarUrl(data.avatar_url || '')
         }
@@ -90,6 +105,28 @@ export default function Perfil() {
     const res = await fetch(`${API}/api/match/${id}`)
     const data = await res.json()
     setMatches(data.matches || [])
+  }
+
+  async function saveProject() {
+    const method = editingProject ? 'PUT' : 'POST'
+    const url = editingProject
+      ? `${API}/api/users/${id}/projects/${editingProject.id}`
+      : `${API}/api/users/${id}/projects`
+    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(projectForm) })
+    const saved = await res.json()
+    if (editingProject) {
+      setProjects(prev => prev.map(p => p.id === saved.id ? saved : p))
+    } else {
+      setProjects(prev => [saved, ...prev])
+    }
+    setShowProjectModal(false)
+    setEditingProject(null)
+    setProjectForm({ title: '', description: '', url: '', tech_stack: '' })
+  }
+
+  async function deleteProject(projectId: number) {
+    await fetch(`${API}/api/users/${id}/projects/${projectId}`, { method: 'DELETE' })
+    setProjects(prev => prev.filter(p => p.id !== projectId))
   }
 
   const isOwnProfile = userId === Number(id)
@@ -353,6 +390,196 @@ export default function Perfil() {
               </div>
             )}
           </div>
+
+          {/* Projetos */}
+          <div className="glass-card" style={{ padding: 28, marginTop: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--neon-purple)', margin: 0 }}>
+                🚀 Projetos
+              </h2>
+              {isOwnProfile && (
+                <button
+                  className="btn btn-ghost"
+                  style={{ padding: '4px 12px', fontSize: '13px' }}
+                  onClick={() => {
+                    setEditingProject(null)
+                    setProjectForm({ title: '', description: '', url: '', tech_stack: '' })
+                    setShowProjectModal(true)
+                  }}
+                >
+                  + Adicionar
+                </button>
+              )}
+            </div>
+            {projects.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {projects.map(p => (
+                  <div key={p.id} style={{
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '16px 20px',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                          <span style={{ fontWeight: 700, fontSize: '15px' }}>{p.title}</span>
+                          {p.url && (
+                            <a
+                              href={p.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ color: 'var(--neon-cyan)', display: 'flex', alignItems: 'center' }}
+                              title="Abrir projeto"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                <polyline points="15 3 21 3 21 9"/>
+                                <line x1="10" y1="14" x2="21" y2="3"/>
+                              </svg>
+                            </a>
+                          )}
+                        </div>
+                        {p.description && (
+                          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 1.6, margin: '0 0 10px' }}>
+                            {p.description}
+                          </p>
+                        )}
+                        {p.tech_stack && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            {p.tech_stack.split(',').map(t => t.trim()).filter(Boolean).map(tag => (
+                              <span key={tag} className="skill-tag" style={{ fontSize: '11px', padding: '2px 8px' }}>
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {isOwnProfile && (
+                        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                          <button
+                            className="btn btn-ghost"
+                            style={{ padding: '4px 8px', fontSize: '13px' }}
+                            title="Editar projeto"
+                            onClick={() => {
+                              setEditingProject(p)
+                              setProjectForm({
+                                title: p.title,
+                                description: p.description || '',
+                                url: p.url || '',
+                                tech_stack: p.tech_stack || '',
+                              })
+                              setShowProjectModal(true)
+                            }}
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            className="btn btn-ghost"
+                            style={{ padding: '4px 8px', fontSize: '13px', color: '#ef4444' }}
+                            title="Excluir projeto"
+                            onClick={() => {
+                              if (confirm(`Excluir o projeto "${p.title}"?`)) deleteProject(p.id)
+                            }}
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Nenhum projeto cadastrado ainda.</p>
+            )}
+          </div>
+
+          {/* Modal de projeto */}
+          {showProjectModal && (
+            <div style={{
+              position: 'fixed', inset: 0, zIndex: 1000,
+              background: 'rgba(0,0,0,0.7)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '24px',
+            }}
+              onClick={e => { if (e.target === e.currentTarget) { setShowProjectModal(false); setEditingProject(null) } }}
+            >
+              <div className="glass-card" style={{ width: '100%', maxWidth: 480, padding: 32 }}>
+                <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: 24, margin: '0 0 24px' }}>
+                  {editingProject ? 'Editar Projeto' : 'Novo Projeto'}
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div>
+                    <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                      Título <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input
+                      className="input"
+                      placeholder="Nome do projeto"
+                      value={projectForm.title}
+                      onChange={e => setProjectForm(f => ({ ...f, title: e.target.value }))}
+                      maxLength={100}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                      Descrição
+                    </label>
+                    <textarea
+                      className="input"
+                      placeholder="Descreva brevemente o projeto..."
+                      value={projectForm.description}
+                      onChange={e => setProjectForm(f => ({ ...f, description: e.target.value }))}
+                      style={{ minHeight: 90, resize: 'vertical' }}
+                      maxLength={500}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                      URL
+                    </label>
+                    <input
+                      className="input"
+                      placeholder="https://github.com/usuario/projeto"
+                      value={projectForm.url}
+                      onChange={e => setProjectForm(f => ({ ...f, url: e.target.value }))}
+                      maxLength={300}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                      Tech Stack
+                    </label>
+                    <input
+                      className="input"
+                      placeholder="React, Node.js, PostgreSQL"
+                      value={projectForm.tech_stack}
+                      onChange={e => setProjectForm(f => ({ ...f, tech_stack: e.target.value }))}
+                      maxLength={200}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
+                    <button
+                      className="btn btn-ghost"
+                      style={{ padding: '8px 20px', fontSize: '13px' }}
+                      onClick={() => { setShowProjectModal(false); setEditingProject(null) }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      className="btn btn-primary"
+                      style={{ padding: '8px 20px', fontSize: '13px' }}
+                      disabled={!projectForm.title.trim()}
+                      onClick={saveProject}
+                    >
+                      {editingProject ? 'Salvar alterações' : 'Adicionar projeto'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Zona de perigo — exclusão de conta (somente no próprio perfil) */}
           {isOwnProfile && (

@@ -19,7 +19,7 @@ class UserResponse(BaseModel):
     name: str
     email: str
     role: str
-    
+
     class Config:
         from_attributes = True
 
@@ -38,6 +38,25 @@ class TrustDimensions(BaseModel):
     social: int = 0
     activity: int = 0
 
+class ProjectResponse(BaseModel):
+    id: int
+    title: str
+    description: Optional[str]
+    url: Optional[str]
+    tech_stack: Optional[str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ProjectCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    url: Optional[str] = None
+    tech_stack: Optional[str] = None
+
+
 class UserProfileResponse(BaseModel):
     id: int
     name: str
@@ -51,7 +70,7 @@ class UserProfileResponse(BaseModel):
     skills: list[str]
     intentions: list[str]
     badges: list[dict]
-    avatar_url: Optional[str] = None
+    projects: list[ProjectResponse] = []
 
 class UserUpdateRequest(BaseModel):
     name: Optional[str] = None
