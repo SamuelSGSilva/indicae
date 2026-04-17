@@ -152,6 +152,38 @@ def fetch_github_skills(username: str):
     return []
 
 
+def fetch_github_repos(username: str) -> list[dict]:
+    try:
+        headers = {"Accept": "application/vnd.github+json"}
+        if GITHUB_TOKEN:
+            headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
+        with _github_client() as client:
+            resp = client.get(
+                f"https://api.github.com/users/{username}/repos?sort=updated&per_page=30",
+                headers=headers
+            )
+        if resp.status_code != 200:
+            return []
+        repos = resp.json()
+        result = []
+        for r in repos:
+            if r.get("fork"):
+                continue  # skip forks
+            topics = r.get("topics") or []
+            lang = r.get("language")
+            tech_parts = ([lang] if lang else []) + topics
+            tech_stack = ", ".join(tech_parts[:8]) if tech_parts else None
+            result.append({
+                "title": r.get("name", ""),
+                "description": (r.get("description") or "")[:500],
+                "url": r.get("html_url", ""),
+                "tech_stack": tech_stack,
+            })
+        return result
+    except Exception:
+        return []
+
+
 @app.post("/api/users", response_model=schemas.UserResponse)
 def create_user(req: Request, user: schemas.UserCreate, db: Session = Depends(database.get_db)):
     check_rate_limit(req, limit=5)
@@ -412,6 +444,41 @@ def sync_github_skills(user_id: int, db: Session = Depends(database.get_db)):
         pass
     all_skills = [s.skill_name for s in db.query(models.UserSkill).filter(models.UserSkill.user_id == user_id).all()]
     return {"message": f"Skills sincronizadas com sucesso! {len(added)} novas encontradas.", "skills": all_skills}
+
+
+@app.post("/api/users/{user_id}/sync-projects")
+def sync_github_projects(user_id: int, db: Session = Depends(database.get_db)):
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+    if not db_user.github_username:
+        raise HTTPException(status_code=400, detail="Usuário não possui username do GitHub cadastrado.")
+    repos = fetch_github_repos(db_user.github_username)
+    if not repos:
+        return {"message": "Nenhum repositório encontrado.", "projects": []}
+    added = []
+    for repo in repos:
+        existing = db.query(models.UserProject).filter(
+            models.UserProject.user_id == user_id,
+            models.UserProject.url == repo["url"]
+        ).first()
+        if existing:
+            # update description/tech_stack in case they changed
+            existing.description = repo["description"]
+            existing.tech_stack = repo["tech_stack"]
+        else:
+            project = models.UserProject(
+                user_id=user_id,
+                source="github",
+                **repo
+            )
+            db.add(project)
+            added.append(project)
+    db.commit()
+    all_projects = db.query(models.UserProject).filter(
+        models.UserProject.user_id == user_id
+    ).order_by(models.UserProject.created_at.desc()).all()
+    return {"message": f"{len(added)} projeto(s) importado(s).", "projects": all_projects}
 
 
 @app.put("/api/users/{user_id}/profile")

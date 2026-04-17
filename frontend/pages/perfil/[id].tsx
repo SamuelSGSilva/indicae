@@ -15,6 +15,7 @@ interface Project {
   description: string | null
   url: string | null
   tech_stack: string | null
+  source?: string
   created_at: string
 }
 interface Profile {
@@ -127,6 +128,15 @@ export default function Perfil() {
   async function deleteProject(projectId: number) {
     await fetch(`${API}/api/users/${id}/projects/${projectId}`, { method: 'DELETE' })
     setProjects(prev => prev.filter(p => p.id !== projectId))
+  }
+
+  async function syncGithubProjects() {
+    const res = await fetch(`${API}/api/users/${id}/sync-projects`, { method: 'POST' })
+    const data = await res.json()
+    // reload full project list
+    const profileRes = await fetch(`${API}/api/users/${id}/profile`)
+    const profileData = await profileRes.json()
+    setProjects(profileData.projects || [])
   }
 
   const isOwnProfile = userId === Number(id)
@@ -398,17 +408,29 @@ export default function Perfil() {
                 🚀 Projetos
               </h2>
               {isOwnProfile && (
-                <button
-                  className="btn btn-ghost"
-                  style={{ padding: '4px 12px', fontSize: '13px' }}
-                  onClick={() => {
-                    setEditingProject(null)
-                    setProjectForm({ title: '', description: '', url: '', tech_stack: '' })
-                    setShowProjectModal(true)
-                  }}
-                >
-                  + Adicionar
-                </button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {profile.github_username && (
+                    <button
+                      className="btn btn-ghost"
+                      style={{ padding: '4px 12px', fontSize: '12px', color: 'var(--text-muted)', borderColor: 'rgba(255,255,255,0.1)' }}
+                      onClick={syncGithubProjects}
+                      title="Importar repositórios do GitHub"
+                    >
+                      🐱 Sincronizar GitHub
+                    </button>
+                  )}
+                  <button
+                    className="btn btn-ghost"
+                    style={{ padding: '4px 12px', fontSize: '13px' }}
+                    onClick={() => {
+                      setEditingProject(null)
+                      setProjectForm({ title: '', description: '', url: '', tech_stack: '' })
+                      setShowProjectModal(true)
+                    }}
+                  >
+                    + Adicionar
+                  </button>
+                </div>
               )}
             </div>
             {projects.length > 0 ? (
@@ -424,6 +446,11 @@ export default function Perfil() {
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
                           <span style={{ fontWeight: 700, fontSize: '15px' }}>{p.title}</span>
+                          {p.source === 'github' && (
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 4, padding: '1px 6px', lineHeight: 1.6 }}>
+                              🐱 GitHub
+                            </span>
+                          )}
                           {p.url && (
                             <a
                               href={p.url}

@@ -84,6 +84,7 @@ class UserProject(Base):
     description = Column(String(500), nullable=True)
     url = Column(String(300), nullable=True)
     tech_stack = Column(String(200), nullable=True)  # comma-separated tags
+    source = Column(String(20), default="manual")  # "manual" or "github"
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     user = relationship("User", back_populates="projects")
 

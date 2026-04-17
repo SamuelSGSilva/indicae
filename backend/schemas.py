@@ -44,6 +44,7 @@ class ProjectResponse(BaseModel):
     description: Optional[str]
     url: Optional[str]
     tech_stack: Optional[str]
+    source: str = "manual"
     created_at: datetime
 
     class Config:
