@@ -453,29 +453,40 @@ def sync_github_projects(user_id: int, db: Session = Depends(database.get_db)):
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")
     if not db_user.github_username:
         raise HTTPException(status_code=400, detail="Usuário não possui username do GitHub cadastrado.")
-    repos = fetch_github_repos(db_user.github_username)
+    try:
+        repos = fetch_github_repos(db_user.github_username)
+    except Exception as e:
+        print(f"fetch_github_repos error: {e}")
+        raise HTTPException(status_code=502, detail="Erro ao buscar repositórios do GitHub.")
     if not repos:
-        return {"message": "Nenhum repositório encontrado.", "projects": []}
-    added = []
+        return {"message": "Nenhum repositório público encontrado.", "count": 0}
+    added = 0
     for repo in repos:
-        existing = db.query(models.UserProject).filter(
-            models.UserProject.user_id == user_id,
-            models.UserProject.url == repo["url"]
-        ).first()
-        if existing:
-            # update description/tech_stack in case they changed
-            existing.description = repo["description"]
-            existing.tech_stack = repo["tech_stack"]
-        else:
-            project = models.UserProject(
-                user_id=user_id,
-                source="github",
-                **repo
-            )
-            db.add(project)
-            added.append(project)
+        try:
+            existing = db.query(models.UserProject).filter(
+                models.UserProject.user_id == user_id,
+                models.UserProject.url == repo["url"]
+            ).first()
+            if existing:
+                existing.description = repo["description"]
+                existing.tech_stack = repo["tech_stack"]
+            else:
+                project = models.UserProject(
+                    user_id=user_id,
+                    source="github",
+                    title=repo["title"],
+                    description=repo["description"],
+                    url=repo["url"],
+                    tech_stack=repo["tech_stack"],
+                )
+                db.add(project)
+                added += 1
+        except Exception as e:
+            print(f"Erro ao salvar projeto '{repo.get('title')}': {e}")
+            db.rollback()
+            continue
     db.commit()
-    return {"message": f"{len(added)} projeto(s) importado(s).", "count": len(added)}
+    return {"message": f"{added} projeto(s) importado(s).", "count": added}
 
 
 @app.put("/api/users/{user_id}/profile")

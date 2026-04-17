@@ -138,15 +138,19 @@ export default function Perfil() {
     try {
       const res = await fetch(`${API}/api/users/${id}/sync-projects`, { method: 'POST' })
       const data = await res.json()
+      if (!res.ok) {
+        setSyncMessage(`Erro: ${data.detail || 'Falha ao sincronizar.'}`)
+        return
+      }
       const profileRes = await fetch(`${API}/api/users/${id}/profile`)
       const profileData = await profileRes.json()
       setProjects(profileData.projects || [])
       setSyncMessage(data.message || 'Sincronizado!')
     } catch {
-      setSyncMessage('Erro ao sincronizar.')
+      setSyncMessage('Erro de conexão ao sincronizar.')
     } finally {
       setSyncingProjects(false)
-      setTimeout(() => setSyncMessage(''), 4000)
+      setTimeout(() => setSyncMessage(''), 5000)
     }
   }
 
